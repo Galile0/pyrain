@@ -22,7 +22,7 @@ def decode_propertys(bitstream):
     propertys = {}
     while True:
         property = decode_property(bitstream)
-        if property is not None:
+        if property:
             propertys[property['key']] = property['value']
         else:
             return propertys
@@ -30,7 +30,7 @@ def decode_propertys(bitstream):
 
 def decode_property(bitstream):
     property_key = read_string(bitstream)
-    if property_key == "None":
+    if property_key == 'None':
         return None
     property_type = read_string(bitstream)
     property_value_size = bitstream.read(UINT_64)
@@ -46,7 +46,7 @@ def decode_property(bitstream):
     elif property_type == 'ArrayProperty':
         array_length = bitstream.read(UINT_32)
         property_value = [
-            decode_property(bitstream)
+            decode_propertys(bitstream)
             for i in range(array_length)
         ]
     elif property_type == 'ByteProperty':
@@ -66,4 +66,4 @@ if __name__ == '__main__':
     size, crc, ver = read_file_meta(replay)
     print('Headersize:\t%d\nCRC:\t\t%s\nVersion:\t%s' % (size, crc, ver))
     print(read_string(replay))
-    print(decode_propertys(replay))
+    header = decode_propertys(replay)
