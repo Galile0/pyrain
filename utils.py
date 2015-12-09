@@ -2,7 +2,8 @@ __author__ = 'temme.jan'
 
 UINT_32 = 'uintle:32'
 UINT_64 = 'uintle:64'
-FLOAT_32 = 'floatle:32'
+FLOAT_LE_32 = 'floatle:32'
+FLOAT_BE_32 = 'floatbe:32'
 
 
 def read_string(bitstream):  # TODO OPTIONAL: CHECK IF PROPERLY NULL TERMINATED

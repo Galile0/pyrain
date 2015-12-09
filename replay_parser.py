@@ -1,4 +1,5 @@
-from utils import read_string, UINT_32, UINT_64, FLOAT_32
+from netstream_parser import NetstreamParser
+from utils import read_string, UINT_32, UINT_64, FLOAT_LE_32
 import bitstring
 from collections import OrderedDict
 
@@ -28,7 +29,9 @@ class ReplayParser:
         parsed_replay['maps'] = self._decode_maps(self.replay)
         parsed_replay['keyframes'] = self._decode_keyframes(self.replay)
         parsed_replay['netstream_size'] = self.replay.read(UINT_32)
-        parsed_replay['netstream_data'] = self.replay.read(parsed_replay['netstream_size']*8).hex
+        netstream = self.replay.read(parsed_replay['netstream_size']*8)
+        NetstreamParser(parsed_replay['netstream_size'], netstream).parse_frames()
+        parsed_replay['netstream_data'] = netstream.hex
         parsed_replay['dbg_log'] = self._decode_dbg_log(self.replay)
         parsed_replay['goal_frames'] = self._decode_goalframes(self.replay)
         parsed_replay['packages'] = self._decode_packages(self.replay)
@@ -63,7 +66,7 @@ class ReplayParser:
         elif property_type == 'StrProperty':
             property_value = read_string(bitstream)
         elif property_type == 'FloatProperty':
-            property_value = bitstream.read(FLOAT_32)
+            property_value = bitstream.read(FLOAT_LE_32)
         elif property_type == 'NameProperty':
             property_value = read_string(bitstream)
         elif property_type == 'ArrayProperty':
@@ -95,7 +98,7 @@ class ReplayParser:
         keyframe_num = bitstream.read(UINT_32)
         keyframes = []
         for i in range(keyframe_num):
-            keyframes.append({'time': bitstream.read(FLOAT_32),
+            keyframes.append({'time': bitstream.read(FLOAT_LE_32),
                               'frame': bitstream.read(UINT_32),
                               'position': bitstream.read(UINT_32)})
         return keyframes
