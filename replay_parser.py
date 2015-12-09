@@ -30,7 +30,6 @@ class ReplayParser:
         parsed_replay['keyframes'] = self._decode_keyframes(self.replay)
         parsed_replay['netstream_size'] = self.replay.read(UINT_32)
         netstream = self.replay.read(parsed_replay['netstream_size']*8)
-        NetstreamParser(parsed_replay['netstream_size'], netstream).parse_frames()
         parsed_replay['netstream_data'] = netstream.hex
         parsed_replay['dbg_log'] = self._decode_dbg_log(self.replay)
         parsed_replay['goal_frames'] = self._decode_goalframes(self.replay)
@@ -40,7 +39,12 @@ class ReplayParser:
         parsed_replay['class_index_map'] = self._decode_class_index_map(self.replay)
         parsed_replay['class_net_cache'] = self._decode_class_net_cache(self.replay)
         if self.replay.bytepos == (self.replay.length/8):
-            print("Reached end of File as expected. Parsing successful")
+            print("Reached EOF as expected. Metadata parsing successful")
+            print("===========STARTING NETWORK DATA PARSING============")
+            print("===============EXPECT SHIT TO HAPPEN================")
+            NetstreamParser(parsed_replay['netstream_size'],
+                            netstream,
+                            parsed_replay['objects']).parse_frames()
         else:
             print("Shit has hit the fan, parsing did not reach eof")
         return parsed_replay
@@ -129,9 +133,9 @@ class ReplayParser:
 
     def _decode_objects(self, bitstream):
         entrie_number = bitstream.read(UINT_32)
-        entries = []
+        entries = {}
         for i in range(entrie_number):
-            entries.append(read_string(bitstream))
+            entries[i]= read_string(bitstream)
         return entries
 
     def _decode_names(self, bitstream):
