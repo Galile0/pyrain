@@ -36,6 +36,10 @@ class ReplayParser:
         parsed_replay['names'] = self._decode_names(self.replay)
         parsed_replay['class_index_map'] = self._decode_class_index_map(self.replay)
         parsed_replay['class_net_cache'] = self._decode_class_net_cache(self.replay)
+        if self.replay.bytepos == (self.replay.length/8):
+            print("Reached end of File as expected. Parsing successful")
+        else:
+            print("Shit has hit the fan, parsing did not reach eof")
         return parsed_replay
 
     def _decode_properties(self, bitstream):
