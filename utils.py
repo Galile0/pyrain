@@ -5,7 +5,9 @@ UINT_64 = 'uintle:64'
 FLOAT_32 = 'floatle:32'
 
 
-def read_string(bitstream):
-    string_len = str(bitstream.read(UINT_32))
-    string_value = bitstream.read('bytes:'+string_len)[:-1]  # TODO OPTIONAL: CHECK IF PROPERLY NULL TERMINATED
-    return string_value.decode('utf-8')
+def read_string(bitstream):  # TODO OPTIONAL: CHECK IF PROPERLY NULL TERMINATED
+    string_len = bitstream.read('intle:32')
+    if string_len < 0:
+        string_len *= -2
+        return bitstream.read('bytes:'+str(string_len))[:-2].decode('utf-16')
+    return bitstream.read('bytes:'+str(string_len))[:-1].decode('utf-8')
