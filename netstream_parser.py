@@ -2,6 +2,8 @@ import bitstring
 from time import time
 import pprint
 
+import math
+
 BOOL = 'bool'
 BV_SIZE = 4   # how many bits represent the component length of ball position vectors
 CV_SIZE = 10  # Same as BV_Size but for Cars respectively
@@ -161,14 +163,28 @@ class NetstreamParser:
             z = self._reverse_byte(netstream.read('uint:8'))
         return x, y, z
 
+def pv(bitstream, max_val):
+    max_bits = math.ceil(math.log(max_val, 2))
+    print('max_bits: %d' % max_bits)
+    value = 0
+    i = 0
+    while i<max_bits and (value + ( 1 << i) <=max_val):
+        bit = bitstream.read(BOOL)
+        if bit:
+            value += (1 << i)
+        print(bin(value))
+        i += 1
+    return value
+
 if __name__=='__main__':
-    v1 = bitstring.ConstBitStream('0b0011000000000000010')
+    v1 = bitstring.ConstBitStream('0b0011000000000000010000000001110000110100000001')
     v2 = bitstring.ConstBitStream('0x601017b')
-    p = NetstreamParser(0,None,None)
-    r1 = p._read_variable_vector(v1)
-    r2 = p._read_pos_vector(v2)
-    print(r1)
-    print(r2)
+    # p = NetstreamParser(0,None,None)
+    # r1 = p._read_variable_vector(v1)
+    # r2 = p._read_pos_vector(v2)
+    # print(r1)
+    # print(r2)
+    print(pv(v1,19))
 
 '''
 ZorMOnkeys version of serialized int reading (Max value of 20 in code, 19 reported to work better)
