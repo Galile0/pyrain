@@ -1,5 +1,6 @@
 import bitstring
 from time import time
+import pprint
 
 BOOL = 'bool'
 
@@ -14,28 +15,35 @@ class NetstreamParser:
         netstream = self.netstream  # because writing fucking self again and again is annoying as shit
         current_time = self._reverse_bytewise(netstream.read('bits:32')).floatle
         delta_time = self._reverse_bytewise(netstream.read('bits:32')).floatle
-        # while True:  # Actor Replicating Loop
-        actor_present = netstream.read(BOOL)
-        # if not actor_present:
-        #     break
-        actor_id = self._reverse_bytewise(netstream.read('bits:10'))
-        channel_open = netstream.read(BOOL)
-        actor_new = netstream.read(BOOL)
-        if actor_new: self._parse_new_actor(netstream)
-        print('current time', current_time)
-        print('delta time', delta_time)
-        print("Actor present: ", actor_present)
-        print("Actor ID: ", actor_id)
-        print("Channel Open: ", channel_open)
-        print("Actor new", actor_new)
-        print(self._read_variable_vector(netstream))
-        print(netstream.read('bin:64'))
+        print('CTime %s' % current_time)
+        print('DTime %s' % delta_time)
+        pprint.pprint(self._parse_actors(netstream))
+
+    def _parse_actors(self, netstream):
+        actors = {}
+        while True:  # Actor Replicating Loop
+            actor = {}
+            actor_present = netstream.read(BOOL)
+            if not actor_present:
+                break
+            actor_id = self._reverse_bytewise(netstream.read('bits:10')).uintle
+            actor['channel_open'] = netstream.read(BOOL)
+            actor['actor_new'] = netstream.read(BOOL)
+            if not actor['channel_open'] or not actor['actor_new']:  # Temporary since existing actors are not supported yet
+                actors[actor_id] = actor
+                break
+            actor['actor_data'] = self._parse_new_actor(netstream)
+            actor['vector'] = self._read_variable_vector(netstream)
+            actors[actor_id] = actor
+        return actors
 
     def _parse_new_actor(self, netstream):
         unknown = netstream.read(BOOL)
         type_id = self._reverse_bytewise(netstream.read('bits:32')).uintle
         type_name = self.objects[type_id]
-        print('type_id %d: %s' % (type_id, type_name))
+        return {'Unknown Flag': unknown,
+                'type_id': type_id,
+                'type_name': type_name}
 
     def _reverse_bytewise(self, bitstream, dbg=False):
         # start = time()
