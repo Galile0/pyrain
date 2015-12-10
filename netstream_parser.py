@@ -25,6 +25,7 @@ class NetstreamParser:
         self.frame_number = frame_number
         if netstream: self.netstream = self._reverse_bytewise(netstream)
         if objects: self.objects = objects
+        self.actors = {}  # Actor Data, gets filled by new, referenced by existing actors
 
     def parse_frames(self):  # Lets try to parse one frame successful before this gets looped
         netstream = self.netstream  # because writing fucking self again and again is annoying as shit
@@ -35,22 +36,37 @@ class NetstreamParser:
         pprint.pprint(self._parse_actors(netstream))
 
     def _parse_actors(self, netstream):
-        actors = {}
         while True:  # Actor Replicating Loop
             actor = {}
             actor['start_pos'] = netstream.pos
             actor_present = netstream.read(BOOL)
             if not actor_present:
                 break
+
             actor_id = self._reverse_bytewise(netstream.read('bits:10')).uintle
             actor['channel_open'] = netstream.read(BOOL)
-            actor['actor_new'] = netstream.read(BOOL)
-            if not actor['channel_open'] or not actor['actor_new']:  # Temporary since existing actors are not supported yet
-                actors[actor_id] = actor
+            if not actor['channel_open']:  # Temporary since existing actors are not supported yet
+                self.actors[actor_id] = actor
                 break
-            actor['actor_data'] = self._parse_new_actor(netstream)
-            actors[actor_id] = actor
-        return actors
+
+            actor['actor_new'] = netstream.read(BOOL)
+            if actor['actor_new']:
+                actor['actor_data'] = self._parse_new_actor(netstream)
+            else:
+                pprint.pprint(actor)
+                print("==========")
+                break  # TODO REmove break when existing actor parsing is completed
+                #actor['actor_data'] = self._parse_existing_actor(netstream)
+
+            self.actors[actor_id] = actor
+        return self.actors
+
+    def _parse_existing_actor(self, netstream):
+        actor = {}
+        actor['type_id'] = self._reverse_bytewise(netstream.read('bits:32')).uintle
+        actor['type_name'] = self.objects[actor['type_id']]
+
+        return actor
 
     def _parse_new_actor(self, netstream):
         actor = {}
@@ -65,10 +81,9 @@ class NetstreamParser:
             actor['rotation'] = self._read_rot_vector(netstream)
         elif 'Car_Default' in actor['type_name']:
             # print("case 2", actor['type_name'])
-            actor['vector'] = self._read_variable_vector(netstream)  # TODO Refer TO HEADERNOTE
-            # actor['vector'] = self._read_pos_vector(netstream, CV_SIZE, False)
+            # actor['vector'] = self._read_variable_vector(netstream)  # TODO Refer TO HEADERNOTE
+            actor['vector'] = self._read_pos_vector(netstream, CV_SIZE, False)
             actor['rotation'] = self._read_rot_vector(netstream)
-
         else:
             # print("case 3", actor['type_name'])
             actor['vector'] = self._read_pos_vector(netstream)
@@ -122,18 +137,18 @@ class NetstreamParser:
         return (x, y, z)
 
     def _read_pos_vector(self, netstream, size=DV_SIZE, add=True):
-        # start = netstream.pos
+        start = netstream.pos
         length = self._reverse_bytewise(netstream.read(size)).uintle
         if add: length += 2
         x = self._reverse_bytewise(netstream.read(length)).uintle
         y = self._reverse_bytewise(netstream.read(length)).uintle
         z = self._reverse_bytewise(netstream.read(length)).uintle
-        # delta = netstream.pos - start
-        # netstream.pos=start
-        # print("RAW: %s" % netstream.read(delta).bin)
-        # print("Len: %d" % length)
-        # print("Vec: %d %d %d" % (x,y,z))
-        # print("=======")
+        delta = netstream.pos - start
+        netstream.pos = start
+        print("RAW: %s" % netstream.read(delta).bin)
+        print("Len: %d" % length)
+        print("Vec: %d %d %d" % (x,y,z))
+        print("=======")
         return x, y, z
 
     def _read_rot_vector(self, netstream):
@@ -154,3 +169,26 @@ if __name__=='__main__':
     r2 = p._read_pos_vector(v2)
     print(r1)
     print(r2)
+
+'''
+ZorMOnkeys version of serialized int reading (Max value of 20 in code, 19 reported to work better)
+public Int32 ReadInt32Max(Int32 maxValue)
+{
+    var maxBits = Math.Floor(Math.Log10(maxValue) / Math.Log10(2)) + 1;
+
+    Int32 value = 0;
+    for(int i = 0; i < maxBits && (value + (1<< i)) <= maxValue; ++i)
+    {
+        value += (ReadBit() ? 1: 0) << i;
+    }
+
+    if ( value > maxValue)
+    {
+        throw new Exception("ReadInt32Max overflowed!");
+    }
+
+    return value;
+}
+
+coded after FBitReader::SerializeInt in ue
+'''
