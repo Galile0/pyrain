@@ -161,6 +161,7 @@ class ReplayParser:
     def _decode_class_net_cache(self, bitstream, class_index_map):
         entrie_number = bitstream.read(UINT_32)
         entries = {}
+        tree = []
         for i in range(entrie_number):
             class_id = bitstream.read(UINT_32)  # relates to id in class_index_map
             parent = bitstream.read(UINT_32)
@@ -173,5 +174,17 @@ class ReplayParser:
                 property_mapped_index = bitstream.read(UINT_32)
                 mapping[property_mapped_index] = property_index
             data['mapping'] = mapping
-            entries[class_index_map[class_id]] = data
+            data['parent'] = parent
+            data['id'] = id
+            if entries:
+                for item in tree[:]:
+                    if item['id'] == parent:
+                        item[class_index_map[class_id]] = data
+                        tree.insert(0, data)
+                        break
+                    else:
+                        tree.remove(item)
+            else:
+                entries[class_index_map[class_id]] = data
+                tree.insert(0, data)
         return entries
