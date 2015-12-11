@@ -53,7 +53,7 @@ class NetstreamParser:
         property_present = netstream.read(BOOL)
         if not property_present:
             return actor
-        actor['network_property_id'] = read_serialized_int(netstream, 72)
+        actor['network_property_id'] = read_serialized_int(netstream, 36)
         pprint.pprint(actor)
         return actor
 

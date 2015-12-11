@@ -17,10 +17,9 @@ class ReplayParser:
 
     def __init__(self, replay_file):
         self.replay = bitstring.ConstBitStream(filename=replay_file)
-        self.parsed_replay = OrderedDict()
 
     def parse_file(self):
-        parsed_replay = self.parsed_replay
+        parsed_replay = OrderedDict()
         self.replay.read('bytes:4')  # Read header size and discard
         parsed_replay['crc'] = self.replay.read('hex:32')
         parsed_replay['version'] = str(self.replay.read(UINT_32)) + '.' + str(self.replay.read(UINT_32))
@@ -38,18 +37,22 @@ class ReplayParser:
         parsed_replay['objects'] = self._decode_objects(self.replay)
         parsed_replay['names'] = self._decode_names(self.replay)
         parsed_replay['class_index_map'] = self._decode_class_index_map(self.replay)
-        parsed_replay['class_net_cache'] = self._decode_class_net_cache(self.replay)
+        parsed_replay['class_net_cache'] = self._decode_class_net_cache(self.replay, parsed_replay['class_index_map'])
+        self._build_netprop_lookup(parsed_replay['objects'], parsed_replay['class_net_cache'])
         if self.replay.bytepos == (self.replay.length/8):
             print("Reached EOF as expected. Metadata parsing successful")
             print("===========STARTING NETWORK DATA PARSING============")
             print("===============EXPECT SHIT TO HAPPEN================")
             NetstreamParser(parsed_replay['netstream_size'],
                             netstream,
-                            parsed_replay['objects']).parse_frames()
+                            parsed_replay['objects'], None).parse_frames()
         else:
             print("Shit has hit the fan, parsing did not reach eof")
         return parsed_replay
 
+    def _build_netprop_lookup(self, objects, netcache):
+        prop_map = {}
+        return prop_map
     def _decode_properties(self, bitstream):
         properties = {}
         while True:
@@ -155,13 +158,13 @@ class ReplayParser:
             entries[id] = name
         return entries
 
-    def _decode_class_net_cache(self, bitstream):
+    def _decode_class_net_cache(self, bitstream, class_index_map):
         entrie_number = bitstream.read(UINT_32)
         entries = {}
         for i in range(entrie_number):
             class_id = bitstream.read(UINT_32)  # relates to id in class_index_map
-            index_start = bitstream.read(UINT_32)
-            index_end = bitstream.read(UINT_32)
+            parent = bitstream.read(UINT_32)
+            id = bitstream.read(UINT_32)
             length = bitstream.read(UINT_32)
             data = {}
             mapping = {}
@@ -170,5 +173,5 @@ class ReplayParser:
                 property_mapped_index = bitstream.read(UINT_32)
                 mapping[property_mapped_index] = property_index
             data['mapping'] = mapping
-            entries[self.parsed_replay['class_index_map'][class_id]] = data
+            entries[class_index_map[class_id]] = data
         return entries
