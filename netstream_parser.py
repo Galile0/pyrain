@@ -12,7 +12,7 @@ class NetstreamParser:
             self.objects = objects
         if propertymapper:
             self.propertymapper = propertymapper
-        self.actors = {}  # Actor Data, gets filled by new, referenced by existing actors
+        self.actor_type = {}  # Mapping actor id to their type for reference by existing actors
 
     def parse_frames(self):  # Lets try to parse one frame successful before this gets looped
         netstream = self.netstream  # because writing fucking self again and again is annoying as shit
@@ -23,6 +23,7 @@ class NetstreamParser:
         pprint.pprint(self._parse_actors(netstream))
 
     def _parse_actors(self, netstream):
+        actors = []
         while True:  # Actor Replicating Loop
             actor = {}
             actor['start_pos'] = netstream.pos
@@ -30,32 +31,30 @@ class NetstreamParser:
             if not actor_present:
                 break
 
-            actor_id = reverse_bytewise(netstream.read('bits:10')).uintle
+            actor['actor_id'] = reverse_bytewise(netstream.read('bits:10')).uintle
             actor['channel_open'] = netstream.read(BOOL)
             if not actor['channel_open']:  # Temporary since existing actors are not supported yet
-                self.actors[actor_id] = actor
+                # self.actors[actor_id] = actor
                 break
 
             actor['actor_new'] = netstream.read(BOOL)
             if actor['actor_new']:
                 actor['actor_data'] = self._parse_new_actor(netstream)
+                self.actor_type[actor['actor_id']] = actor['actor_data']['type_name']
             else:
-
-                actor['actor_data'] = self._parse_existing_actor(netstream, self.actors[actor_id]['actor_data'])
-                self.actors[actor_id].update(actor)
+                actor['actor_data'] = self._parse_existing_actor(netstream, self.actor_type[actor['actor_id']])
+                actors.append(actor)
                 break  # TODO REmove break when existing actor parsing is completed
-            self.actors[actor_id] = actor
-        return self.actors
+            actors.append(actor)
+        return actors
 
-    def _parse_existing_actor(self, netstream, old_actor):
+    def _parse_existing_actor(self, netstream, actor_type):
         actor = {}
-        pprint.pprint(old_actor)
         property_present = netstream.read(BOOL)
         if not property_present:
             return actor
         actor['network_property_id'] = read_serialized_int(netstream, 36)
-        actor['network_property_name'] = self.objects[self.propertymapper.get_property_name(old_actor['type_name'], actor['network_property_id'])]
-        pprint.pprint(actor)
+        actor['network_property_name'] = self.objects[self.propertymapper.get_property_name(actor_type, actor['network_property_id'])]
         return actor
 
     def _parse_new_actor(self, netstream):
