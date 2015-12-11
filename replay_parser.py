@@ -17,9 +17,10 @@ class ReplayParser:
 
     def __init__(self, replay_file):
         self.replay = bitstring.ConstBitStream(filename=replay_file)
+        self.parsed_replay = OrderedDict()
 
     def parse_file(self):
-        parsed_replay = OrderedDict()
+        parsed_replay = self.parsed_replay
         self.replay.read('bytes:4')  # Read header size and discard
         parsed_replay['crc'] = self.replay.read('hex:32')
         parsed_replay['version'] = str(self.replay.read(UINT_32)) + '.' + str(self.replay.read(UINT_32))
@@ -147,10 +148,11 @@ class ReplayParser:
 
     def _decode_class_index_map(self, bitstream):
         entrie_number = bitstream.read(UINT_32)
-        entries = []
+        entries = {}
         for i in range(entrie_number):  # corresponds to object table
-            entries.append({'name': read_string(bitstream),
-                            'id': bitstream.read(UINT_32)})
+            name = read_string(bitstream)
+            id = bitstream.read(UINT_32)
+            entries[id] = name
         return entries
 
     def _decode_class_net_cache(self, bitstream):
@@ -161,13 +163,12 @@ class ReplayParser:
             index_start = bitstream.read(UINT_32)
             index_end = bitstream.read(UINT_32)
             length = bitstream.read(UINT_32)
-            data = {'index_start': index_start,
-                    'index_end': index_end}
+            data = {}
             mapping = {}
             for j in range(length):
                 property_index = bitstream.read(UINT_32)
                 property_mapped_index = bitstream.read(UINT_32)
-                mapping[property_index] = property_mapped_index
+                mapping[property_mapped_index] = property_index
             data['mapping'] = mapping
-            entries[class_id] = data
+            entries[self.parsed_replay['class_index_map'][class_id]] = data
         return entries

@@ -1,38 +1,23 @@
-import bitstring
-from time import time
+from utils import read_serialized_int, read_pos_vector, read_rot_vector, reverse_bytewise, BOOL
 import pprint
 
-import math
 
-BOOL = 'bool'
-BV_SIZE = 4   # how many bits represent the component length of ball position vectors
-CV_SIZE = 10  # Same as BV_Size but for Cars respectively
-DV_SIZE = 5   # Default value for non car non ball types
-'''
-NOTES ON VECTOR CODING:
-    According to ZoRMonkeys findings the Car Position Vector consists of 10 Bits for component length, which for frame 0
-     results in 12 bit Component Size
-    According to JJBOts Gihubcode (read_variable_vector) the Car vector for frame 0 has 4 bits for length resulting in
-     14 bit component size
-
-    At this point it is unsure which parsing is correct, but the result of 10 bit for length seem more logical compared
-    to the ball vector (One Axis identical = Lined up with ball, one axis slightly offset, maybe due to mid air spawn,
-    one axis drastical offset, car in front of goal)
-
-    unil further parsing results in clearer data both methods are left in, and can simply be used interchangeable
-'''
 class NetstreamParser:
 
-    def __init__(self, frame_number, netstream, objects):
+    def __init__(self, frame_number, netstream, objects, netcache):
         self.frame_number = frame_number
-        if netstream: self.netstream = self._reverse_bytewise(netstream)
-        if objects: self.objects = objects
+        if netstream:
+            self.netstream = reverse_bytewise(netstream)
+        if objects:
+            self.objects = objects
+        if netcache:
+            self.netcache = netcache
         self.actors = {}  # Actor Data, gets filled by new, referenced by existing actors
 
     def parse_frames(self):  # Lets try to parse one frame successful before this gets looped
         netstream = self.netstream  # because writing fucking self again and again is annoying as shit
-        current_time = self._reverse_bytewise(netstream.read('bits:32')).floatle
-        delta_time = self._reverse_bytewise(netstream.read('bits:32')).floatle
+        current_time = reverse_bytewise(netstream.read('bits:32')).floatle
+        delta_time = reverse_bytewise(netstream.read('bits:32')).floatle
         print('CTime %s' % current_time)
         print('DTime %s' % delta_time)
         pprint.pprint(self._parse_actors(netstream))
@@ -45,7 +30,7 @@ class NetstreamParser:
             if not actor_present:
                 break
 
-            actor_id = self._reverse_bytewise(netstream.read('bits:10')).uintle
+            actor_id = reverse_bytewise(netstream.read('bits:10')).uintle
             actor['channel_open'] = netstream.read(BOOL)
             if not actor['channel_open']:  # Temporary since existing actors are not supported yet
                 self.actors[actor_id] = actor
@@ -55,156 +40,31 @@ class NetstreamParser:
             if actor['actor_new']:
                 actor['actor_data'] = self._parse_new_actor(netstream)
             else:
-                pprint.pprint(actor)
-                print("==========")
-                break  # TODO REmove break when existing actor parsing is completed
-                #actor['actor_data'] = self._parse_existing_actor(netstream)
 
+                actor['actor_data'] = self._parse_existing_actor(netstream, self.actors[actor_id]['actor_data'])
+                self.actors[actor_id] = actor
+                break  # TODO REmove break when existing actor parsing is completed
             self.actors[actor_id] = actor
         return self.actors
 
-    def _parse_existing_actor(self, netstream):
+    def _parse_existing_actor(self, netstream, old_actor):
         actor = {}
-        actor['type_id'] = self._reverse_bytewise(netstream.read('bits:32')).uintle
-        actor['type_name'] = self.objects[actor['type_id']]
-
+        pprint.pprint(old_actor)
+        property_present = netstream.read(BOOL)
+        if not property_present:
+            return actor
+        actor['network_property_id'] = read_serialized_int(netstream, 72)
+        pprint.pprint(actor)
         return actor
 
     def _parse_new_actor(self, netstream):
         actor = {}
         actor['unknown_flag'] = netstream.read(BOOL)
-        actor['type_id'] = self._reverse_bytewise(netstream.read('bits:32')).uintle
+        actor['type_id'] = reverse_bytewise(netstream.read('bits:32')).uintle
         actor['type_name'] = self.objects[actor['type_id']]
         if 'TheWorld' in actor['type_name']:  # World types are Vector Less
             return actor
-        if 'Ball_Default' in actor['type_name']:
-            # print("case 1", actor['type_name'])
-            actor['vector'] = self._read_pos_vector(netstream, BV_SIZE)
-            actor['rotation'] = self._read_rot_vector(netstream)
-        elif 'Car_Default' in actor['type_name']:
-            # print("case 2", actor['type_name'])
-            # actor['vector'] = self._read_variable_vector(netstream)  # TODO Refer TO HEADERNOTE
-            actor['vector'] = self._read_pos_vector(netstream, CV_SIZE, False)
-            actor['rotation'] = self._read_rot_vector(netstream)
-        else:
-            # print("case 3", actor['type_name'])
-            actor['vector'] = self._read_pos_vector(netstream)
+        actor['vector'] = read_pos_vector(netstream)
+        if 'Ball_Default' in actor['type_name'] or 'Car_Default' in actor['type_name']:
+            actor['rotation'] = read_rot_vector(netstream)
         return actor
-
-    def _reverse_bytewise(self, bitstream, dbg=False):
-        # start = time()
-        result = []
-        if dbg: print(bitstream.bin)
-        for byte in bitstream.tobytes():
-            if dbg: print(hex(byte))
-            result.append(self._reverse_byte(byte))
-        reverse_bytes = bitstring.ConstBitStream(bytes=result)
-        # delta = time() - start
-        # print('method three took', delta)
-        return reverse_bytes
-
-    def _reverse_byte(self, x):
-        x = ((x & 0x55555555) << 1) | ((x & 0xAAAAAAAA) >> 1)
-        x = ((x & 0x33333333) << 2) | ((x & 0xCCCCCCCC) >> 2)
-        x = ((x & 0x0F0F0F0F) << 4) | ((x & 0xF0F0F0F0) >> 4)
-        return x
-
-    def _read_serialized_int(self, netstream, max_value=19):
-        value = 0
-        bits_read = 0
-
-        while True:
-            # print(value, end=' ')
-            if netstream.read(1).bool:
-                value += (1 << bits_read)
-            # print(value, end=' ')
-            bits_read += 1
-            # print(bits_read, end=' ')
-            possible_value = value + (1 << bits_read)
-            # print(possible_value)
-            if possible_value > max_value:
-                # print("length", value)
-                return value
-
-    def _read_variable_vector(self, netstream):
-        # pos_start = netstream.pos
-        length = self._read_serialized_int(netstream) + 2
-        # l_bits = netstream.pos - pos_start
-        # print("Length %d coded in %d bits" % (length, l_bits))
-
-        x = self._reverse_bytewise(netstream.read(length)).uintle
-        y = self._reverse_bytewise(netstream.read(length)).uintle
-        z = self._reverse_bytewise(netstream.read(length)).uintle
-        # netstream.pos = pos
-        return (x, y, z)
-
-    def _read_pos_vector(self, netstream, size=DV_SIZE, add=True):
-        start = netstream.pos
-        length = self._reverse_bytewise(netstream.read(size)).uintle
-        if add: length += 2
-        x = self._reverse_bytewise(netstream.read(length)).uintle
-        y = self._reverse_bytewise(netstream.read(length)).uintle
-        z = self._reverse_bytewise(netstream.read(length)).uintle
-        delta = netstream.pos - start
-        netstream.pos = start
-        print("RAW: %s" % netstream.read(delta).bin)
-        print("Len: %d" % length)
-        print("Vec: %d %d %d" % (x,y,z))
-        print("=======")
-        return x, y, z
-
-    def _read_rot_vector(self, netstream):
-        x = y = z = 0
-        if netstream.read(BOOL):
-            x = self._reverse_byte(netstream.read('uint:8'))
-        if netstream.read(BOOL):
-            y = self._reverse_byte(netstream.read('uint:8'))
-        if netstream.read(BOOL):
-            z = self._reverse_byte(netstream.read('uint:8'))
-        return x, y, z
-
-def pv(bitstream, max_val):
-    max_bits = math.ceil(math.log(max_val, 2))
-    print('max_bits: %d' % max_bits)
-    value = 0
-    i = 0
-    while i<max_bits and (value + ( 1 << i) <=max_val):
-        bit = bitstream.read(BOOL)
-        if bit:
-            value += (1 << i)
-        print(bin(value))
-        i += 1
-    return value
-
-if __name__=='__main__':
-    v1 = bitstring.ConstBitStream('0b0011000000000000010000000001110000110100000001')
-    v2 = bitstring.ConstBitStream('0x601017b')
-    # p = NetstreamParser(0,None,None)
-    # r1 = p._read_variable_vector(v1)
-    # r2 = p._read_pos_vector(v2)
-    # print(r1)
-    # print(r2)
-    print(pv(v1,19))
-
-'''
-ZorMOnkeys version of serialized int reading (Max value of 20 in code, 19 reported to work better)
-public Int32 ReadInt32Max(Int32 maxValue)
-{
-    var maxBits = Math.Floor(Math.Log10(maxValue) / Math.Log10(2)) + 1;
-
-    Int32 value = 0;
-    for(int i = 0; i < maxBits && (value + (1<< i)) <= maxValue; ++i)
-    {
-        value += (ReadBit() ? 1: 0) << i;
-    }
-
-    if ( value > maxValue)
-    {
-        throw new Exception("ReadInt32Max overflowed!");
-    }
-
-    return value;
-}
-
-coded after FBitReader::SerializeInt in ue
-'''
