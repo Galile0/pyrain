@@ -2,7 +2,7 @@ from netstream_parser import NetstreamParser
 from utils import read_string, UINT_32, UINT_64, FLOAT_LE_32
 import bitstring
 from collections import OrderedDict
-
+from network_property_mapping import PropertyMapper
 '''
 Assumed File Structure:
 4 Bytes size of header starting after CRC
@@ -38,21 +38,18 @@ class ReplayParser:
         parsed_replay['names'] = self._decode_names(self.replay)
         parsed_replay['class_index_map'] = self._decode_class_index_map(self.replay)
         parsed_replay['class_net_cache'] = self._decode_class_net_cache(self.replay, parsed_replay['class_index_map'])
-        self._build_netprop_lookup(parsed_replay['objects'], parsed_replay['class_net_cache'])
         if self.replay.bytepos == (self.replay.length/8):
             print("Reached EOF as expected. Metadata parsing successful")
             print("===========STARTING NETWORK DATA PARSING============")
             print("===============EXPECT SHIT TO HAPPEN================")
+            mapper = PropertyMapper(parsed_replay['class_net_cache'])
             NetstreamParser(parsed_replay['netstream_size'],
                             netstream,
-                            parsed_replay['objects'], None).parse_frames()
+                            parsed_replay['objects'], mapper).parse_frames()
         else:
             print("Shit has hit the fan, parsing did not reach eof")
         return parsed_replay
 
-    def _build_netprop_lookup(self, objects, netcache):
-        prop_map = {}
-        return prop_map
     def _decode_properties(self, bitstream):
         properties = {}
         while True:
@@ -188,3 +185,4 @@ class ReplayParser:
                 entries[class_index_map[class_id]] = data
                 tree.insert(0, data)
         return entries
+

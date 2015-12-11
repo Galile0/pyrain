@@ -4,14 +4,14 @@ import pprint
 
 class NetstreamParser:
 
-    def __init__(self, frame_number, netstream, objects, netcache):
+    def __init__(self, frame_number, netstream, objects, propertymapper):
         self.frame_number = frame_number
         if netstream:
             self.netstream = reverse_bytewise(netstream)
         if objects:
             self.objects = objects
-        if netcache:
-            self.netcache = netcache
+        if propertymapper:
+            self.propertymapper = propertymapper
         self.actors = {}  # Actor Data, gets filled by new, referenced by existing actors
 
     def parse_frames(self):  # Lets try to parse one frame successful before this gets looped
@@ -42,7 +42,7 @@ class NetstreamParser:
             else:
 
                 actor['actor_data'] = self._parse_existing_actor(netstream, self.actors[actor_id]['actor_data'])
-                self.actors[actor_id] = actor
+                self.actors[actor_id].update(actor)
                 break  # TODO REmove break when existing actor parsing is completed
             self.actors[actor_id] = actor
         return self.actors
@@ -54,6 +54,7 @@ class NetstreamParser:
         if not property_present:
             return actor
         actor['network_property_id'] = read_serialized_int(netstream, 36)
+        actor['network_property_name'] = self.objects[self.propertymapper.get_property_name(old_actor['type_name'], actor['network_property_id'])]
         pprint.pprint(actor)
         return actor
 
