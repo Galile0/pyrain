@@ -1,9 +1,9 @@
-from utils import read_serialized_int, read_pos_vector, read_rot_vector, reverse_bytewise, BOOL
+from network_property_parsing import read_property_value
+from utils import read_serialized_int, read_pos_vector, read_rot_vector, reverse_bytewise, BOOL, ParsingException
 import pprint
 
 
 class NetstreamParser:
-
     def __init__(self, frame_number, netstream, objects, propertymapper):
         self.frame_number = frame_number
         if netstream:
@@ -49,13 +49,19 @@ class NetstreamParser:
         return actors
 
     def _parse_existing_actor(self, netstream, actor_type):
-        actor = {}
-        property_present = netstream.read(BOOL)
-        if not property_present:
-            return actor
-        actor['network_property_id'] = read_serialized_int(netstream, 36)
-        actor['network_property_name'] = self.objects[self.propertymapper.get_property_name(actor_type, actor['network_property_id'])]
-        return actor
+        properties = []
+        while netstream.read(BOOL):
+            property_id = read_serialized_int(netstream, 36)
+            property_name = self.objects[self.propertymapper.get_property_name(actor_type, property_id)]
+            try:
+                property_value = read_property_value(property_name, netstream)
+            except ParsingException as e:
+                print(e)
+                break
+            properties.append({'property_id': property_id,
+                               'property_name': property_name,
+                               'property_value': property_value})
+        return {'properties': properties}
 
     def _parse_new_actor(self, netstream):
         actor = {}

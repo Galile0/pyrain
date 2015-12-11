@@ -7,6 +7,9 @@ FLOAT_BE_32 = 'floatbe:32'
 BOOL = 'bool'
 
 
+class ParsingException(Exception): pass
+
+
 def read_string(bitstream):  # TODO OPTIONAL: CHECK IF PROPERLY NULL TERMINATED
     string_len = bitstream.read('intle:32')
     if string_len < 0:
