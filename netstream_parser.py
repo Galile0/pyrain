@@ -51,7 +51,7 @@ class NetstreamParser:
     def _parse_existing_actor(self, netstream, actor_type):
         properties = []
         while netstream.read(BOOL):
-            property_id = read_serialized_int(netstream, 36)
+            property_id = read_serialized_int(netstream, self.propertymapper.get_property_max_id(actor_type))
             property_name = self.objects[self.propertymapper.get_property_name(actor_type, property_id)]
             try:
                 property_value = read_property_value(property_name, netstream)

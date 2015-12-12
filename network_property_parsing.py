@@ -3,7 +3,7 @@ from utils import reverse_bytewise, BOOL, ParsingException
 # God damn I wish python had fall through like any normal switch-case syntax <.<
 # But you know, explicit is better than implicit...yeah, fuck you
 parsing = {  # thanks to https://github.com/jjbott/RocketLeagueReplayParser/ he has done a shitton of work on this
-    #  Flagged int Properties (At least i assume its a flag + 32 bit int)
+    # FLAGGED INT Properties (At least i assume its a flag + 32 bit int)
     "TAGame.Team_TA:GameEvent": lambda x: _read_flagged_int(x),
     "TAGame.CrowdActor_TA:ReplicatedOneShotSound": lambda x: _read_flagged_int(x),
     "TAGame.CrowdManager_TA:ReplicatedGlobalOneShotSound": lambda x: _read_flagged_int(x),
@@ -18,7 +18,7 @@ parsing = {  # thanks to https://github.com/jjbott/RocketLeagueReplayParser/ he 
     "TAGame.CrowdActor_TA:GameEvent": lambda x: _read_flagged_int(x),
     "TAGame.Team_TA:LogoData": lambda x: _read_flagged_int(x),
 
-    # 32 Bit int properties, seems to make sense
+    # INT properties, seems to make sense
     "TAGame.GameEvent_Soccar_TA:SecondsRemaining": lambda x: _read_int(x),
     "TAGame.GameEvent_TA:ReplicatedGameStateTimeRemaining": lambda x: _read_int(x),
     "TAGame.CrowdActor_TA:ReplicatedCountDownNumber": lambda x: _read_int(x),
@@ -38,7 +38,7 @@ parsing = {  # thanks to https://github.com/jjbott/RocketLeagueReplayParser/ he 
     "ProjectX.GRI_X:ReplicatedGameMutatorIndex": lambda x: _read_int(x),
     "TAGame.PRI_TA:Title": lambda x: _read_int(x),
 
-    #  Single Byte Properties
+    # BYTE Properties
     "Engine.PlayerReplicationInfo:Ping": lambda x: _read_byte(x),
     "TAGame.Vehicle_TA:ReplicatedSteer": lambda x: _read_byte(x),
     "TAGame.Vehicle_TA:ReplicatedThrottle": lambda x: _read_byte(x),
@@ -46,8 +46,9 @@ parsing = {  # thanks to https://github.com/jjbott/RocketLeagueReplayParser/ he 
     "TAGame.PRI_TA:CameraPitch": lambda x: _read_byte(x),
     "TAGame.Ball_TA:HitTeamNum": lambda x: _read_byte(x),
     "TAGame.GameEvent_Soccar_TA:ReplicatedScoredOnTeam": lambda x: _read_byte(x),
+    "TAGame.GameEvent_TA:ReplicatedStateIndex": lambda x: _read_byte(x),  # maybe?
 
-    #  Boolean Properties
+    # BOOLEAN Properties
     "Engine.Actor:bCollideWorld": lambda x: _read_bool(x),
     "Engine.PlayerReplicationInfo:bReadyToPlay": lambda x: _read_bool(x),
     "TAGame.Vehicle_TA:bReplicatedHandbrake": lambda x: _read_bool(x),
@@ -73,7 +74,7 @@ parsing = {  # thanks to https://github.com/jjbott/RocketLeagueReplayParser/ he 
     "Engine.GameReplicationInfo:bMatchIsOver": lambda x: _read_bool(x),
     "TAGame.CarComponent_Boost_TA:bUnlimitedBoost": lambda x: _read_bool(x),
 
-    # FLoat Properties
+    # FLOAT Properties
     "TAGame.CarComponent_FlipCar_TA:FlipCarTime": lambda x: _read_float(x),
     "TAGame.Ball_TA:ReplicatedBallScale": lambda x: _read_float(x),
     "TAGame.CarComponent_Boost_TA:RechargeDelay": lambda x: _read_float(x),
@@ -85,7 +86,7 @@ parsing = {  # thanks to https://github.com/jjbott/RocketLeagueReplayParser/ he 
     "Engine.Actor:DrawScale": lambda x: _read_float(x),
     "TAGame.CrowdActor_TA:ModifiedNoise": lambda x: _read_float(x),
 
-    # String Properties
+    # STRING Properties
     "Engine.GameReplicationInfo:ServerName": lambda x: _read_string(x),
     "Engine.PlayerReplicationInfo:PlayerName": lambda x: _read_string(x),
     "TAGame.Team_TA:CustomTeamName": lambda x: _read_string(x)
