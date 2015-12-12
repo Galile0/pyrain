@@ -1,7 +1,7 @@
 from collections import OrderedDict
 
 from network_property_parsing import read_property_value
-from utils import read_serialized_int, read_pos_vector, read_rot_vector, reverse_bytewise, BOOL, ParsingException
+from utils import read_serialized_int, read_serialized_vector, read_byte_vector, reverse_bytewise, BOOL, ParsingException
 import pprint
 
 
@@ -29,8 +29,8 @@ class NetstreamParser:
                                'data': self._parse_actors(netstream)})
             except ParsingException as e:
                 print("DONT KNOW WHAT TO DO! PANIC! ABORT! FLEE YOU FOOLS!")
-                print(e)
-                break
+                pprint.pprint(e.args)
+                return frames
         return frames
         # pprint.pprint(self._parse_actors(netstream))
 
@@ -45,16 +45,42 @@ class NetstreamParser:
             actorid = reverse_bytewise(netstream.read('bits:10')).uintle
             channel = netstream.read(BOOL)
             if not channel:  # TODO Temporary since existing actors are not supported yet
-                del self.actor_type[actorid]  # Delete from active actor list
-                break
+                try:
+                    del self.actor_type[actorid]  # Delete from active actor list
+                except KeyError:
+                    raise ParsingException("KeyError on Actor delete, this is what i got so far", actors)
+                continue
 
             new = netstream.read(BOOL)
             if new:
-                data = self._parse_new_actor(netstream)
+                try:
+                    data = self._parse_new_actor(netstream)
+                except ParsingException as e:
+                    print(e)
+                    raise ParsingException(actors)
                 self.actor_type[actorid] = data['type_name']  # Add actor to currently exist.
             else:
-                data = self._parse_existing_actor(netstream, self.actor_type[actorid])
-            actors.append(OrderedDict([ # OrderedDict only for readability of json file
+                try:
+                    data = self._parse_existing_actor(netstream, self.actor_type[actorid])
+                except ParsingException as e:
+                    print(e)
+                    actors.append(OrderedDict([  # OrderedDict only for readability of json file
+                        ('startpos', startpos),
+                        ('actor_type', self.actor_type[actorid]),
+                        ('actor_id', actorid),
+                        ('open', channel),
+                        ('new', new)]))
+                    raise ParsingException(actors)
+                except KeyError as e:
+                    print(e)
+                    actors.append(OrderedDict([  # OrderedDict only for readability of json file
+                        ('startpos', startpos),
+                        ('actor_type', 'KeyError'),
+                        ('actor_id', actorid),
+                        ('open', channel),
+                        ('new', new)]))
+                    raise ParsingException(actors)
+            actors.append(OrderedDict([  # OrderedDict only for readability of json file
                 ('startpos', startpos),
                 ('actor_type', self.actor_type[actorid]),
                 ('actor_id', actorid),
@@ -69,7 +95,15 @@ class NetstreamParser:
         while netstream.read(BOOL):
             property_id = read_serialized_int(netstream, self.propertymapper.get_property_max_id(actor_type))
             property_name = self.objects[self.propertymapper.get_property_name(actor_type, property_id)]
-            property_value = read_property_value(property_name, netstream)
+            try:
+                property_value = read_property_value(property_name, netstream)
+            except ParsingException as e:
+                print(e)
+                properties.append(OrderedDict([
+                    ('property_id', property_id),
+                    ('property_name', property_name)
+                ]))
+                raise ParsingException(properties)
             result = OrderedDict()  # TODO Ordereddict only for debugging
             result['property_id'] = property_id
             result['property_name'] = property_name
@@ -84,10 +118,13 @@ class NetstreamParser:
         actor = {}
         actor['unknown_flag'] = netstream.read(BOOL)
         actor['type_id'] = reverse_bytewise(netstream.read('bits:32')).uintle
-        actor['type_name'] = self.objects[actor['type_id']]
+        try:
+            actor['type_name'] = self.objects[actor['type_id']]
+        except KeyError:
+            raise ParsingException("Actor Type ID Not in Objects %d" % actor['type_id'])
         if 'TheWorld' in actor['type_name']:  # World types are Vector Less
             return actor
-        actor['vector'] = read_pos_vector(netstream)
+        actor['vector'] = read_serialized_vector(netstream)
         if 'Ball_Default' in actor['type_name'] or 'Car_Default' in actor['type_name']:
-            actor['rotation'] = read_rot_vector(netstream)
+            actor['rotation'] = read_byte_vector(netstream)
         return actor

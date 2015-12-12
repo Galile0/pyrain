@@ -38,7 +38,7 @@ def reverse_byte(x):
     return x
 
 
-def read_serialized_int(bitstream, max_val=20):
+def read_serialized_int(bitstream, max_val=19):
     max_bits = math.ceil(math.log(max_val, 2))
     value = 0
     i = 0
@@ -51,7 +51,7 @@ def read_serialized_int(bitstream, max_val=20):
     return value
 
 
-def read_pos_vector(bitstream):
+def read_serialized_vector(bitstream):
     # pos_start = netstream.pos
     length = read_serialized_int(bitstream)+2
     # l_bits = netstream.pos - pos_start
@@ -60,10 +60,10 @@ def read_pos_vector(bitstream):
     y = reverse_bytewise(bitstream.read(length)).uintle
     z = reverse_bytewise(bitstream.read(length)).uintle
     # netstream.pos = pos
-    return (x, y, z)
+    return x, y, z
 
 
-def read_rot_vector(bitstream):
+def read_byte_vector(bitstream):
     x = y = z = 0
     if bitstream.read(BOOL):
         x = reverse_byte(bitstream.read('uint:8'))
@@ -74,7 +74,7 @@ def read_rot_vector(bitstream):
     return x, y, z
 
 
-def read_float_rot_vector(bitstream):
+def read_float_vector(bitstream):
     x = _read_serialized_float(1, 16, bitstream)
     y = _read_serialized_float(1, 16, bitstream)
     z = _read_serialized_float(1, 16, bitstream)
@@ -104,7 +104,7 @@ if __name__ == '__main__':
     v1 = bitstring.ConstBitStream('0b0011000000000000010000000001110000110100000001')
     v2 = bitstring.ConstBitStream('0x601017b')
 
-    print(read_pos_vector(v1))
+    print(read_serialized_vector(v1))
 
     '''
 ZorMOnkeys version of serialized int reading (Max value of 20 in code, 19 reported to work better)

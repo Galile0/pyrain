@@ -1,7 +1,7 @@
 from collections import OrderedDict
 
-from utils import reverse_bytewise, BOOL, ParsingException, read_pos_vector, read_rot_vector, read_float_rot_vector, \
-    read_serialized_int
+from utils import reverse_bytewise, BOOL, ParsingException, read_serialized_vector, read_byte_vector, read_serialized_int, \
+    read_float_vector
 
 # God damn I wish python had fall through like any normal switch-case syntax <.<
 # But you know, explicit is better than implicit...yeah, fuck you
@@ -20,6 +20,8 @@ parsing = {  # thanks to https://github.com/jjbott/RocketLeagueReplayParser/ he 
     "Engine.Actor:ReplicatedCollisionType": lambda x: _read_flagged_int(x),
     "TAGame.CrowdActor_TA:GameEvent": lambda x: _read_flagged_int(x),
     "TAGame.Team_TA:LogoData": lambda x: _read_flagged_int(x),
+    "TAGame.CarComponent_TA:Vehicle": lambda x: _read_flagged_int(x),  # Not so sure about his TODO Revisit
+    "TAGame.VehiclePickup_TA:ReplicatedPickupData": lambda x: _read_pickup(x), # keep im mind, but pretty solid
 
     # INT properties, seems to make sense
     "TAGame.GameEvent_Soccar_TA:SecondsRemaining": lambda x: _read_int(x),
@@ -50,6 +52,7 @@ parsing = {  # thanks to https://github.com/jjbott/RocketLeagueReplayParser/ he 
     "TAGame.Ball_TA:HitTeamNum": lambda x: _read_byte(x),
     "TAGame.GameEvent_Soccar_TA:ReplicatedScoredOnTeam": lambda x: _read_byte(x),
     "TAGame.GameEvent_TA:ReplicatedStateIndex": lambda x: _read_byte(x),  # maybe?
+    "TAGame.CarComponent_TA:ReplicatedActive": lambda x: _read_byte(x),
 
     # BOOLEAN Properties
     "Engine.Actor:bCollideWorld": lambda x: _read_bool(x),
@@ -100,7 +103,11 @@ parsing = {  # thanks to https://github.com/jjbott/RocketLeagueReplayParser/ he 
     "TAGame.PRI_TA:PartyLeader": lambda x: _read_unique_id(x),
     "TAGame.PRI_TA:CameraSettings": lambda x: _read_cam_settings(x),
     "TAGame.PRI_TA:ClientLoadout": lambda x: _read_loadout(x),
-    "TAGame.Car_TA:TeamPaint": lambda x: _read_teampaint(x)
+    "TAGame.Car_TA:TeamPaint": lambda x: _read_teampaint(x),
+    "TAGame.Ball_TA:ReplicatedExplosionData": lambda x: _read_explosion(x),
+    "Engine.Actor:Role": lambda x: _read_enum(x),
+    "Engine.Actor:Location": lambda x: _read_location(x),
+    "TAGame.CarComponent_Dodge_TA:DodgeTorque": lambda x: _read_location(x)
 }
 
 
@@ -144,15 +151,15 @@ def _read_string(bitstream):  # Kinda copypasta from utils.read_string ... not f
 
 
 def _read_rigid_body_state(bitstream):  # TODO that one is still a mystery it seems (kinda)
-    worldcontact = bitstream.read(BOOL)
-    position = read_pos_vector(bitstream)
-    rotation = read_float_rot_vector(bitstream)
-    result = OrderedDict([('worldContact', worldcontact),  # TODO OrderedDict Temporary for debugging
+    flag = bitstream.read(BOOL)
+    position = read_serialized_vector(bitstream)
+    rotation = read_float_vector(bitstream)
+    result = OrderedDict([('flag', flag),  # TODO OrderedDict Temporary for debugging
                           ('pos', position),
                           ('rot', rotation)])
-    if not worldcontact:  # Totally not sure about this
-        result['vec1'] = read_pos_vector(bitstream)
-        result['vec2'] = read_pos_vector(bitstream)
+    if not flag:  # Totally not sure about this
+        result['vec1'] = read_serialized_vector(bitstream)
+        result['vec2'] = read_serialized_vector(bitstream)
     return result
 
 
@@ -200,3 +207,28 @@ def _read_teampaint(bitstream):
         "TeamFinishID": _read_int(bitstream),
         "CustomFinishID": _read_int(bitstream),
     }
+
+
+def _read_pickup(bitstream):
+    instigator = _read_bool(bitstream)
+    # return _read_int(bitstream), _read_bool(bitstream)
+    if instigator:
+        print("instigator present")
+        return _read_int(bitstream), _read_bool(bitstream)  #Instigator + picked up
+    print("no instigator?")
+    return _read_bool(bitstream)
+
+
+def _read_explosion(bitstream):
+    nogoal = _read_bool(bitstream)
+    if nogoal:
+        return nogoal, read_serialized_vector(bitstream)
+    return nogoal, _read_int(bitstream), read_serialized_vector(bitstream)
+
+
+def _read_enum(bitstream):
+    return reverse_bytewise(bitstream.read('bits:11')).hex # TODO What? O_o it seems right, but WHAT?
+
+
+def _read_location(bitstream):
+    return read_serialized_vector(bitstream)
