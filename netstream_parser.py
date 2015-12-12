@@ -37,26 +37,31 @@ class NetstreamParser:
     def _parse_actors(self, netstream):
         actors = []
         while True:  # Actor Replicating Loop
-            actor = OrderedDict()  # TODO only use orderedDict for debugging (easier to follow the json file that way)
-            actor['start_pos'] = netstream.pos
+            startpos = netstream.pos
             actor_present = netstream.read(BOOL)
 
             if not actor_present:
                 break
-
-            actor['actor_id'] = reverse_bytewise(netstream.read('bits:10')).uintle
-            actor['channel_open'] = netstream.read(BOOL)
-            if not actor['channel_open']:  # TODO Temporary since existing actors are not supported yet
-                del self.actor_type[actor['actor_id']]  # Delete from active actor list
+            actorid = reverse_bytewise(netstream.read('bits:10')).uintle
+            channel = netstream.read(BOOL)
+            if not channel:  # TODO Temporary since existing actors are not supported yet
+                del self.actor_type[actorid]  # Delete from active actor list
                 break
 
-            actor['actor_new'] = netstream.read(BOOL)
-            if actor['actor_new']:
-                actor['actor_data'] = self._parse_new_actor(netstream)
-                self.actor_type[actor['actor_id']] = actor['actor_data']['type_name'] # Add actor to currently exist.
+            new = netstream.read(BOOL)
+            if new:
+                data = self._parse_new_actor(netstream)
+                self.actor_type[actorid] = data['type_name']  # Add actor to currently exist.
             else:
-                actor['actor_data'] = self._parse_existing_actor(netstream, self.actor_type[actor['actor_id']])
-            actors.append(actor)
+                data = self._parse_existing_actor(netstream, self.actor_type[actorid])
+            actors.append(OrderedDict([ # OrderedDict only for readability of json file
+                ('startpos', startpos),
+                ('actor_type', self.actor_type[actorid]),
+                ('actor_id', actorid),
+                ('open', channel),
+                ('new', new),
+                ('data', data)
+            ]))
         return actors
 
     def _parse_existing_actor(self, netstream, actor_type):
@@ -73,7 +78,7 @@ class NetstreamParser:
             # properties.append({'property_id': property_id,
             #                    'property_name': property_name,
             #                    'property_value': property_value})
-        return {'properties': properties}
+        return properties
 
     def _parse_new_actor(self, netstream):
         actor = {}
