@@ -94,7 +94,9 @@ parsing = {  # thanks to https://github.com/jjbott/RocketLeagueReplayParser/ he 
     "TAGame.Team_TA:CustomTeamName": lambda x: _read_string(x),
 
     # S.P.E.C.I.A.L
-    "TAGame.RBActor_TA:ReplicatedRBState": lambda x: _read_rigid_body_state(x)
+    "TAGame.RBActor_TA:ReplicatedRBState": lambda x: _read_rigid_body_state(x),
+    "Engine.PlayerReplicationInfo:UniqueId": lambda x: _read_unique_id(x),
+    "TAGame.PRI_TA:PartyLeader": lambda x: _read_unique_id(x)
 }
 
 
@@ -148,3 +150,15 @@ def _read_rigid_body_state(bitstream):  # TODO that one is still a mystery it se
         result['vec1'] = read_pos_vector(bitstream)
         result['vec2'] = read_pos_vector(bitstream)
     return result
+
+
+def _read_unique_id(bitstream):
+    system = _read_byte(bitstream)
+    if system == 1:  # STEAM
+        uid = reverse_bytewise(bitstream.read('bits:64')).uintle
+    elif system == 2:  # PS4
+        uid = reverse_bytewise(bitstream.read('bits:256')).hex
+    else:  # ayyy
+        uid = reverse_bytewise(bitstream.read('bits:24')).hex
+    playernumber = _read_byte(bitstream)
+    return uid, playernumber
