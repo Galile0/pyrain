@@ -99,7 +99,8 @@ parsing = {  # thanks to https://github.com/jjbott/RocketLeagueReplayParser/ he 
     "Engine.PlayerReplicationInfo:UniqueId": lambda x: _read_unique_id(x),
     "TAGame.PRI_TA:PartyLeader": lambda x: _read_unique_id(x),
     "TAGame.PRI_TA:CameraSettings": lambda x: _read_cam_settings(x),
-    "TAGame.PRI_TA:ClientLoadout": lambda x: _read_loadout(x)
+    "TAGame.PRI_TA:ClientLoadout": lambda x: _read_loadout(x),
+    "TAGame.Car_TA:TeamPaint": lambda x: _read_teampaint(x)
 }
 
 
@@ -189,3 +190,12 @@ def _read_loadout(bitstream):  # TODO I dont know what any of this means or to w
     index = _read_byte(bitstream)
     values = [_read_int(bitstream) for i in range(7)]
     return index, values
+
+def _read_teampaint(bitstream):
+    return {  # TODO Not sure about structure. Find out how id relates to color in game
+        "Team": _read_byte(bitstream),
+        "TeamColorID": _read_byte(bitstream),
+        "CustomColorID": _read_byte(bitstream),
+        "TeamFinishID": _read_int(bitstream),
+        "CustomFinishID": _read_int(bitstream),
+    }
