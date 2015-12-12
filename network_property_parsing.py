@@ -96,7 +96,8 @@ parsing = {  # thanks to https://github.com/jjbott/RocketLeagueReplayParser/ he 
     # S.P.E.C.I.A.L
     "TAGame.RBActor_TA:ReplicatedRBState": lambda x: _read_rigid_body_state(x),
     "Engine.PlayerReplicationInfo:UniqueId": lambda x: _read_unique_id(x),
-    "TAGame.PRI_TA:PartyLeader": lambda x: _read_unique_id(x)
+    "TAGame.PRI_TA:PartyLeader": lambda x: _read_unique_id(x),
+    "TAGame.PRI_TA:CameraSettings": lambda x: _read_cam_settings(x)
 }
 
 
@@ -162,3 +163,14 @@ def _read_unique_id(bitstream):
         uid = reverse_bytewise(bitstream.read('bits:24')).hex
     playernumber = _read_byte(bitstream)
     return uid, playernumber
+
+
+def _read_cam_settings(bitstream):
+    return {
+        'fov': _read_float(bitstream),
+        'height': _read_float(bitstream),
+        'pitch': _read_float(bitstream),
+        'dist': _read_float(bitstream),
+        'stiff': _read_float(bitstream),
+        'swiv': _read_float(bitstream)
+    }
