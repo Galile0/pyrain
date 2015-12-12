@@ -1,3 +1,6 @@
+from utils import ParsingException
+
+
 class PropertyMapper:
 
     def __init__(self, netcache):
@@ -11,7 +14,9 @@ class PropertyMapper:
 
     def _build_prop_for_archtype(self, archtype):
         classname = self._arch_to_class(archtype)
-        mapping = self._get_netprops_for_class(self._netcache, classname)
+        result, mapping = self._get_netprops_for_class(self._netcache, classname)
+        if not result:
+            raise ParsingException("Could not find Network Property Ids for archtype %s with classname %s" % (archtype, classname))
         return mapping
 
     def _arch_to_class(self, archname):
@@ -39,11 +44,11 @@ class PropertyMapper:
         mappings = {}
         for k, v in netcache.items():
             if type(k) == str and classname in k:
-                return v['mapping']
-            if type(v) == dict:
-                child_map = self._get_netprops_for_class(v, classname)
-                if child_map:
+                return True, v['mapping']
+            if type(v) == dict and v != 'mappings':
+                result, child_map = self._get_netprops_for_class(v, classname)
+                if result:
                     mappings = v['mapping']
                     mappings.update(child_map)
-                    return mappings
-        return mappings
+                    return True, mappings
+        return False, mappings
