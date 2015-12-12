@@ -35,7 +35,7 @@ class NetstreamParser:
                 break
             actor['actor_id'] = reverse_bytewise(netstream.read('bits:10')).uintle
             actor['channel_open'] = netstream.read(BOOL)
-            if not actor['channel_open']:  # Temporary since existing actors are not supported yet
+            if not actor['channel_open']:  # TODO Temporary since existing actors are not supported yet
                 # self.actors[actor_id] = actor
                 break
 
@@ -45,8 +45,6 @@ class NetstreamParser:
                 self.actor_type[actor['actor_id']] = actor['actor_data']['type_name']
             else:
                 actor['actor_data'] = self._parse_existing_actor(netstream, self.actor_type[actor['actor_id']])
-                actors.append(actor)
-                break  # TODO REmove break when existing actor parsing is completed
             actors.append(actor)
         return actors
 
