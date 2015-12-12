@@ -158,10 +158,11 @@ class ReplayParser:
 
     def _decode_class_net_cache(self, bitstream, class_index_map):
         entrie_number = bitstream.read(UINT_32)
-        entries = {}
-        tree = []
+        cachelist = []
         for i in range(entrie_number):
             class_id = bitstream.read(UINT_32)  # relates to id in class_index_map
+            if class_id == 192 or class_id==189:
+                print("Found TAGame.Car_TA or Vehicle. debug it you shithead")
             parent = bitstream.read(UINT_32)
             id = bitstream.read(UINT_32)
             length = bitstream.read(UINT_32)
@@ -174,16 +175,15 @@ class ReplayParser:
             data['mapping'] = mapping
             data['parent'] = parent
             data['id'] = id
-            if entries:
-                for item in tree[:]:
-                    if item['id'] == parent:
-                        item[class_index_map[class_id]] = data
-                        tree.insert(0, data)
-                        break
-                    else:
-                        tree.remove(item)
-            else:
-                entries[class_index_map[class_id]] = data
-                tree.insert(0, data)
-        return entries
-
+            cachelist.append({class_index_map[class_id]:data})
+        cachelist.reverse()
+        for index, item in enumerate(cachelist[:-1]):
+            nextcacheid = index+1
+            while True:
+                nextitem = list(cachelist[nextcacheid].values())[0]
+                if nextitem['id'] == list(item.values())[0]['parent']:
+                    nextitem.update(item)
+                    break
+                else:
+                    nextcacheid += 1
+        return cachelist[-1]
