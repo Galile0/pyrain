@@ -1,5 +1,5 @@
 from utils import ParsingException
-
+import re
 
 class PropertyMapper:
 
@@ -35,7 +35,7 @@ class PropertyMapper:
         elif archname == 'Archetypes.Ball.CubeBall':
             classname = 'TAGame.Ball_TA'
         else:
-            classname = archname.split('.')[-1].split(':')[-1]
+            classname = re.sub('_\d+', '', archname).split('.')[-1].split(':')[-1]
             classname = classname.replace("_Default", "_TA")\
                 .replace("Archetype", "")\
                 .replace("_0", "")\
