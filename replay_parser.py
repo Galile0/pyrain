@@ -14,12 +14,12 @@ Netstream Data
 
 
 class ReplayParser:
-
+    # TODO Make this class a Header/Meta only parser and invoke network parsing from parse_file.py for better exception handling and better optiosn support
     def __init__(self, replay_file):
         self.replay = bitstring.ConstBitStream(filename=replay_file)
 
     def parse_file(self):
-        parsed_replay = OrderedDict()
+        parsed_replay = OrderedDict()  # TODO Only use OrderedDict for Debugging
         self.replay.read('bytes:4')  # Read header size and discard
         parsed_replay['crc'] = self.replay.read('hex:32')
         parsed_replay['version'] = str(self.replay.read(UINT_32)) + '.' + str(self.replay.read(UINT_32))
@@ -38,14 +38,15 @@ class ReplayParser:
         parsed_replay['names'] = self._decode_names(self.replay)
         parsed_replay['class_index_map'] = self._decode_class_index_map(self.replay)
         parsed_replay['class_net_cache'] = self._decode_class_net_cache(self.replay, parsed_replay['class_index_map'])
-        if self.replay.bytepos == (self.replay.length/8):
+        if self.replay.bytepos == (self.replay.length/8): # TODO Remove this shit into the main class
             print("Reached EOF as expected. Metadata parsing successful")
             print("===========STARTING NETWORK DATA PARSING============")
             print("===============EXPECT SHIT TO HAPPEN================")
             mapper = PropertyMapper(parsed_replay['class_net_cache'])
-            NetstreamParser(parsed_replay['netstream_size'],
-                            netstream,
-                            parsed_replay['objects'], mapper).parse_frames()
+            parsed_replay['decoded_netstream'] = NetstreamParser(parsed_replay['header']['NumFrames'],
+                                                                 netstream,
+                                                                 parsed_replay['objects'],
+                                                                 mapper).parse_frames()
         else:
             print("Shit has hit the fan, parsing did not reach eof")
         return parsed_replay

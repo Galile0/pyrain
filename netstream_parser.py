@@ -1,3 +1,5 @@
+from collections import OrderedDict
+
 from network_property_parsing import read_property_value
 from utils import read_serialized_int, read_pos_vector, read_rot_vector, reverse_bytewise, BOOL, ParsingException
 import pprint
@@ -20,17 +22,17 @@ class NetstreamParser:
         delta_time = reverse_bytewise(netstream.read('bits:32')).floatle
         print('CTime %s' % current_time)
         print('DTime %s' % delta_time)
-        pprint.pprint(self._parse_actors(netstream))
+        return self._parse_actors(netstream)
+        # pprint.pprint(self._parse_actors(netstream))
 
     def _parse_actors(self, netstream):
         actors = []
         while True:  # Actor Replicating Loop
-            actor = {}
+            actor = OrderedDict()  # TODO only use orderedDict for debugging (easier to follow the json file that way)
             actor['start_pos'] = netstream.pos
             actor_present = netstream.read(BOOL)
             if not actor_present:
                 break
-
             actor['actor_id'] = reverse_bytewise(netstream.read('bits:10')).uintle
             actor['channel_open'] = netstream.read(BOOL)
             if not actor['channel_open']:  # Temporary since existing actors are not supported yet
@@ -58,9 +60,14 @@ class NetstreamParser:
             except ParsingException as e:
                 print(e)
                 break
-            properties.append({'property_id': property_id,
-                               'property_name': property_name,
-                               'property_value': property_value})
+            result = OrderedDict()  # TODO Ordereddict only for debugging
+            result['property_id'] = property_id
+            result['property_name'] = property_name
+            result['property_value'] = property_value
+            properties.append(result)
+            # properties.append({'property_id': property_id,
+            #                    'property_name': property_name,
+            #                    'property_value': property_value})
         return {'properties': properties}
 
     def _parse_new_actor(self, netstream):
