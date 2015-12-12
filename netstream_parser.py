@@ -14,15 +14,24 @@ class NetstreamParser:
             self.objects = objects
         if propertymapper:
             self.propertymapper = propertymapper
-        self.actor_type = {}  # Mapping actor id to their type for reference by existing actors
+        self.actor_type = {}  # Mapping of existing actor ids to their type
 
     def parse_frames(self):  # Lets try to parse one frame successful before this gets looped
         netstream = self.netstream  # because writing fucking self again and again is annoying as shit
-        current_time = reverse_bytewise(netstream.read('bits:32')).floatle
-        delta_time = reverse_bytewise(netstream.read('bits:32')).floatle
-        print('CTime %s' % current_time)
-        print('DTime %s' % delta_time)
-        return self._parse_actors(netstream)
+        frames = []
+        for i in range(self.frame_number):
+            current_time = reverse_bytewise(netstream.read('bits:32')).floatle
+            delta_time = reverse_bytewise(netstream.read('bits:32')).floatle
+            try:
+                frames.append({'frame': str(i),
+                               'time_now': current_time,
+                               'time_delta': delta_time,
+                               'data': self._parse_actors(netstream)})
+            except ParsingException as e:
+                print("DONT KNOW WHAT TO DO! PANIC! ABORT! FLEE YOU FOOLS!")
+                print(e)
+                break
+        return frames
         # pprint.pprint(self._parse_actors(netstream))
 
     def _parse_actors(self, netstream):
@@ -31,21 +40,22 @@ class NetstreamParser:
             actor = OrderedDict()  # TODO only use orderedDict for debugging (easier to follow the json file that way)
             actor['start_pos'] = netstream.pos
             actor_present = netstream.read(BOOL)
+
             if not actor_present:
                 break
+
             actor['actor_id'] = reverse_bytewise(netstream.read('bits:10')).uintle
             actor['channel_open'] = netstream.read(BOOL)
             if not actor['channel_open']:  # TODO Temporary since existing actors are not supported yet
-                # self.actors[actor_id] = actor
+                del self.actor_type[actor['actor_id']]  # Delete from active actor list
                 break
 
             actor['actor_new'] = netstream.read(BOOL)
             if actor['actor_new']:
                 actor['actor_data'] = self._parse_new_actor(netstream)
-                self.actor_type[actor['actor_id']] = actor['actor_data']['type_name']
+                self.actor_type[actor['actor_id']] = actor['actor_data']['type_name'] # Add actor to currently exist.
             else:
-                try: actor['actor_data'] = self._parse_existing_actor(netstream, self.actor_type[actor['actor_id']])
-                except KeyError: pass # TODO I really should start implementing proper exception handling
+                actor['actor_data'] = self._parse_existing_actor(netstream, self.actor_type[actor['actor_id']])
             actors.append(actor)
         return actors
 
@@ -54,11 +64,7 @@ class NetstreamParser:
         while netstream.read(BOOL):
             property_id = read_serialized_int(netstream, self.propertymapper.get_property_max_id(actor_type))
             property_name = self.objects[self.propertymapper.get_property_name(actor_type, property_id)]
-            try:
-                property_value = read_property_value(property_name, netstream)
-            except ParsingException as e:
-                print(e)
-                break
+            property_value = read_property_value(property_name, netstream)
             result = OrderedDict()  # TODO Ordereddict only for debugging
             result['property_id'] = property_id
             result['property_name'] = property_name

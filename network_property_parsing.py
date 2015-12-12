@@ -191,6 +191,7 @@ def _read_loadout(bitstream):  # TODO I dont know what any of this means or to w
     values = [_read_int(bitstream) for i in range(7)]
     return index, values
 
+
 def _read_teampaint(bitstream):
     return {  # TODO Not sure about structure. Find out how id relates to color in game
         "Team": _read_byte(bitstream),

@@ -161,8 +161,6 @@ class ReplayParser:
         cachelist = []
         for i in range(entrie_number):
             class_id = bitstream.read(UINT_32)  # relates to id in class_index_map
-            if class_id == 192 or class_id==189:
-                print("Found TAGame.Car_TA or Vehicle. debug it you shithead")
             parent = bitstream.read(UINT_32)
             id = bitstream.read(UINT_32)
             length = bitstream.read(UINT_32)
