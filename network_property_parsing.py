@@ -1,4 +1,6 @@
-from utils import reverse_bytewise, BOOL, ParsingException
+from collections import OrderedDict
+
+from utils import reverse_bytewise, BOOL, ParsingException, read_pos_vector, read_rot_vector, read_float_rot_vector
 
 # God damn I wish python had fall through like any normal switch-case syntax <.<
 # But you know, explicit is better than implicit...yeah, fuck you
@@ -89,7 +91,10 @@ parsing = {  # thanks to https://github.com/jjbott/RocketLeagueReplayParser/ he 
     # STRING Properties
     "Engine.GameReplicationInfo:ServerName": lambda x: _read_string(x),
     "Engine.PlayerReplicationInfo:PlayerName": lambda x: _read_string(x),
-    "TAGame.Team_TA:CustomTeamName": lambda x: _read_string(x)
+    "TAGame.Team_TA:CustomTeamName": lambda x: _read_string(x),
+
+    # S.P.E.C.I.A.L
+    "TAGame.RBActor_TA:ReplicatedRBState": lambda x: _read_rigid_body_state(x)
 }
 
 
@@ -127,6 +132,19 @@ def _read_float(bitstream):
 def _read_string(bitstream):  # Kinda copypasta from utils.read_string ... not feelin to good about this :/
     length = _read_int(bitstream)*8
     if length < 0:
-        length *= -2 # Thats hard to read, maybe I should untangle it? eh whatever TODO untangle
+        length *= -2  # Thats hard to read, maybe I should untangle it? eh whatever TODO untangle
         return reverse_bytewise(bitstream.read('bits:'+str(length))).bytes[:-2].decode('utf-16')
     return reverse_bytewise(bitstream.read('bits:'+str(length))).bytes[:-1].decode('utf-8')
+
+
+def _read_rigid_body_state(bitstream):  # TODO that one is still a mystery it seems (kinda)
+    worldcontact = bitstream.read(BOOL)
+    position = read_pos_vector(bitstream)
+    rotation = read_float_rot_vector(bitstream)
+    result = OrderedDict([('worldContact', worldcontact),  # TODO OrderedDict Temporary for debugging
+                          ('pos', position),
+                          ('rot', rotation)])
+    if not worldcontact:  # Totally not sure about this
+        result['vec1'] = read_pos_vector(bitstream)
+        result['vec2'] = read_pos_vector(bitstream)
+    return result

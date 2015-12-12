@@ -38,7 +38,7 @@ def reverse_byte(x):
     return x
 
 
-def read_serialized_int(bitstream, max_val=19):
+def read_serialized_int(bitstream, max_val=20):
     max_bits = math.ceil(math.log(max_val, 2))
     value = 0
     i = 0
@@ -72,6 +72,33 @@ def read_rot_vector(bitstream):
     if bitstream.read(BOOL):
         z = reverse_byte(bitstream.read('uint:8'))
     return x, y, z
+
+
+def read_float_rot_vector(bitstream):
+    x = _read_serialized_float(1, 16, bitstream)
+    y = _read_serialized_float(1, 16, bitstream)
+    z = _read_serialized_float(1, 16, bitstream)
+    return x, y, z
+
+
+def _read_serialized_float(max_value, numbits, bitstream):
+    '''
+    I dont know whats exactly happening here. Thanks again to https://github.com/jjbott/RocketLeagueReplayParser from
+    where i blatantly copied that part
+    '''
+    max_bit_value = (1 << (numbits - 1)) - 1
+    bias = (1 << (numbits - 1))
+    ser_int_max = (1 << (numbits - 0))
+    delta = read_serialized_int(bitstream, ser_int_max)
+    unscaled_value = delta - bias
+    if max_value > max_bit_value:
+        inv_scale = max_value / max_bit_value
+        value = unscaled_value * inv_scale
+    else:
+        scale = max_bit_value / max_value
+        inv_scale = 1.0/scale
+        value = unscaled_value * inv_scale
+    return value
 
 if __name__ == '__main__':
     v1 = bitstring.ConstBitStream('0b0011000000000000010000000001110000110100000001')

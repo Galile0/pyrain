@@ -44,7 +44,8 @@ class NetstreamParser:
                 actor['actor_data'] = self._parse_new_actor(netstream)
                 self.actor_type[actor['actor_id']] = actor['actor_data']['type_name']
             else:
-                actor['actor_data'] = self._parse_existing_actor(netstream, self.actor_type[actor['actor_id']])
+                try: actor['actor_data'] = self._parse_existing_actor(netstream, self.actor_type[actor['actor_id']])
+                except KeyError: pass # TODO I really should start implementing proper exception handling
             actors.append(actor)
         return actors
 
