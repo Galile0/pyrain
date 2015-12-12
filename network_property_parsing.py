@@ -1,6 +1,7 @@
 from collections import OrderedDict
 
-from utils import reverse_bytewise, BOOL, ParsingException, read_pos_vector, read_rot_vector, read_float_rot_vector
+from utils import reverse_bytewise, BOOL, ParsingException, read_pos_vector, read_rot_vector, read_float_rot_vector, \
+    read_serialized_int
 
 # God damn I wish python had fall through like any normal switch-case syntax <.<
 # But you know, explicit is better than implicit...yeah, fuck you
@@ -97,7 +98,8 @@ parsing = {  # thanks to https://github.com/jjbott/RocketLeagueReplayParser/ he 
     "TAGame.RBActor_TA:ReplicatedRBState": lambda x: _read_rigid_body_state(x),
     "Engine.PlayerReplicationInfo:UniqueId": lambda x: _read_unique_id(x),
     "TAGame.PRI_TA:PartyLeader": lambda x: _read_unique_id(x),
-    "TAGame.PRI_TA:CameraSettings": lambda x: _read_cam_settings(x)
+    "TAGame.PRI_TA:CameraSettings": lambda x: _read_cam_settings(x),
+    "TAGame.PRI_TA:ClientLoadout": lambda x: _read_loadout(x)
 }
 
 
@@ -174,3 +176,16 @@ def _read_cam_settings(bitstream):
         'stiff': _read_float(bitstream),
         'swiv': _read_float(bitstream)
     }
+
+
+def _read_loadout(bitstream):  # TODO I dont know what any of this means or to what it correlates
+    # array of ints? i dunno
+    # index = read_serialized_int(bitstream)
+    # values = []
+    # for i in range(index):
+    #     #values.append(reverse_bytewise(bitstream.read("bits:32")).hex)
+    #     values.append(read_serialized_int(bitstream))
+    # return index, values
+    index = _read_byte(bitstream)
+    values = [_read_int(bitstream) for i in range(7)]
+    return index, values
