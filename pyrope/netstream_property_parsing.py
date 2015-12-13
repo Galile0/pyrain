@@ -1,7 +1,6 @@
 from collections import OrderedDict
 
-from utils import reverse_bytewise, BOOL, ParsingException, read_serialized_vector, read_byte_vector, read_serialized_int, \
-    read_float_vector
+from pyrope.utils import reverse_bytewise, BOOL, read_serialized_vector, read_float_vector
 
 # God damn I wish python had fall through like any normal switch-case syntax <.<
 # But you know, explicit is better than implicit...yeah, fuck you
@@ -20,8 +19,7 @@ parsing = {  # thanks to https://github.com/jjbott/RocketLeagueReplayParser/ he 
     "Engine.Actor:ReplicatedCollisionType": lambda x: _read_flagged_int(x),
     "TAGame.CrowdActor_TA:GameEvent": lambda x: _read_flagged_int(x),
     "TAGame.Team_TA:LogoData": lambda x: _read_flagged_int(x),
-    "TAGame.CarComponent_TA:Vehicle": lambda x: _read_flagged_int(x),  # Not so sure about his TODO Revisit
-    "TAGame.VehiclePickup_TA:ReplicatedPickupData": lambda x: _read_pickup(x), # keep im mind, but pretty solid
+    "TAGame.CarComponent_TA:Vehicle": lambda x: _read_flagged_int(x),
 
     # INT properties, seems to make sense
     "TAGame.GameEvent_Soccar_TA:SecondsRemaining": lambda x: _read_int(x),
@@ -109,7 +107,8 @@ parsing = {  # thanks to https://github.com/jjbott/RocketLeagueReplayParser/ he 
     "Engine.Actor:Location": lambda x: _read_location(x),
     "TAGame.CarComponent_Dodge_TA:DodgeTorque": lambda x: _read_location(x),
     "ProjectX.GRI_X:GameServerID": lambda x: _read_qword(x),
-    "ProjectX.GRI_X:Reservations": lambda x: _read_reservations(x)
+    "ProjectX.GRI_X:Reservations": lambda x: _read_reservations(x),
+    "TAGame.VehiclePickup_TA:ReplicatedPickupData": lambda x: _read_pickup(x)
 }
 
 
@@ -117,8 +116,8 @@ def read_property_value(property_name, bitstream):
     try:
         value = parsing[property_name](bitstream)
     except KeyError:
-        raise ParsingException("Dont know how to parse bits for %s \n Have some raw Bits: %s"
-                               % (property_name, bitstream.read('hex:128')))
+        raise PropertyParsingError("Dont know how to parse bits for %s \n Have some raw Bits: %s"
+                                   % (property_name, bitstream.read('hex:512')))
     return value
 
 
@@ -144,21 +143,21 @@ def _read_float(bitstream):
     return reverse_bytewise(bitstream.read('bits:32')).floatle
 
 
-def _read_string(bitstream):  # Kinda copypasta from utils.read_string ... not feelin to good about this :/
-    length = _read_int(bitstream)*8  # but this is reverse and shit...so yeah
+def _read_string(bitstream):  # This should be in utils. But its only needed here, so yeah
+    length = _read_int(bitstream)*8
     if length < 0:
-        length *= -2  # Thats hard to read, maybe I should untangle it? eh whatever TODO untangle
+        length *= -2
         return reverse_bytewise(bitstream.read('bits:'+str(length))).bytes[:-2].decode('utf-16')
     return reverse_bytewise(bitstream.read('bits:'+str(length))).bytes[:-1].decode('utf-8')
 
 
-def _read_rigid_body_state(bitstream):  # TODO that one is still a mystery it seems (kinda)
+def _read_rigid_body_state(bitstream):
     flag = bitstream.read(BOOL)
     position = read_serialized_vector(bitstream)
     rotation = read_float_vector(bitstream)
-    result = OrderedDict([('flag', flag),  # TODO OrderedDict Temporary for debugging
-                          ('pos', position),
-                          ('rot', rotation)])
+    result = {'flag': flag,
+              'pos': position,
+              'rot': rotation}
     if not flag:  # Totally not sure about this
         result['vec1'] = read_serialized_vector(bitstream)
         result['vec2'] = read_serialized_vector(bitstream)
@@ -188,21 +187,15 @@ def _read_cam_settings(bitstream):
     }
 
 
-def _read_loadout(bitstream):  # TODO I dont know what any of this means or to what it correlates
-    # array of ints? i dunno
-    # index = read_serialized_int(bitstream)
-    # values = []
-    # for i in range(index):
-    #     #values.append(reverse_bytewise(bitstream.read("bits:32")).hex)
-    #     values.append(read_serialized_int(bitstream))
-    # return index, values
+def _read_loadout(bitstream):
+    # Loadout has no Paint information, could be Car, Decal?, Wheels, Boost, Hat, Antenna, Title
     index = _read_byte(bitstream)
     values = [_read_int(bitstream) for i in range(7)]
     return index, values
 
 
 def _read_teampaint(bitstream):
-    return {  # TODO Not sure about structure. Find out how id relates to color in game
+    return {
         "Team": _read_byte(bitstream),
         "TeamColorID": _read_byte(bitstream),
         "CustomColorID": _read_byte(bitstream),
@@ -212,13 +205,13 @@ def _read_teampaint(bitstream):
 
 
 def _read_pickup(bitstream):
+    # Seems quirky but yields good results... let it rest for now son
     instigator = _read_bool(bitstream)
-    # return _read_int(bitstream), _read_bool(bitstream)
     if instigator:
         # print("instigator present")
-        return _read_int(bitstream), _read_bool(bitstream)  #Instigator + picked up
+        return _read_int(bitstream), _read_bool(bitstream)  # InstigatorId + picked up
     # print("no instigator?")
-    return _read_bool(bitstream)
+    return _read_bool(bitstream)  # Only picked up
 
 
 def _read_explosion(bitstream):
@@ -229,7 +222,8 @@ def _read_explosion(bitstream):
 
 
 def _read_enum(bitstream):
-    return reverse_bytewise(bitstream.read('bits:11')).hex # TODO What? O_o it seems right, but WHAT?
+    # What? O_o it seems right, but why 11? Like...what?
+    return reverse_bytewise(bitstream.read('bits:11')).hex
 
 
 def _read_location(bitstream):
@@ -249,3 +243,7 @@ def _read_reservations(bitstream):
     flag_1 = _read_bool(bitstream)
     flag_2 = _read_bool(bitstream)
     return unknown, name, flag_1, flag_2
+
+
+class PropertyParsingError(Exception):
+    pass

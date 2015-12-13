@@ -1,31 +1,32 @@
-from utils import ParsingException
 import re
+
+from pyrope.utils import ParsingError
+
 
 class PropertyMapper:
 
     def __init__(self, netcache):
         self._netcache = netcache
-        self._class_to_prop_map = {}
+        self._archtype_to_prop = {}
 
     def get_property_name(self, archtype, prop_id):
-        if archtype not in self._class_to_prop_map:
-            self._class_to_prop_map[archtype] = self._build_prop_for_archtype(archtype)
-        return self._class_to_prop_map[archtype][prop_id]
+        if archtype not in self._archtype_to_prop:
+            self._archtype_to_prop[archtype] = self._build_prop_for_archtype(archtype)
+        return self._archtype_to_prop[archtype][prop_id]
 
     def get_property_max_id(self, archtype):
-        if archtype not in self._class_to_prop_map:
-            self._class_to_prop_map[archtype] = self._build_prop_for_archtype(archtype)
-        return max(self._class_to_prop_map[archtype].keys())
+        if archtype not in self._archtype_to_prop:
+            self._archtype_to_prop[archtype] = self._build_prop_for_archtype(archtype)
+        return max(self._archtype_to_prop[archtype].keys())
 
     def _build_prop_for_archtype(self, archtype):
         classname = self._arch_to_class(archtype)
         result, mapping = self._get_netprops_for_class(self._netcache, classname)
         if not result:
-            raise ParsingException("Could not find Network Property Ids for archtype %s with classname %s" % (archtype, classname))
+            raise ParsingError("Could not find Property Ids for archtype %s with classname %s" % (archtype, classname))
         return mapping
 
     def _arch_to_class(self, archname):
-        # TODO Maybe there is a way to not hardcode this? I dunno
         if archname == 'GameInfo_Soccar.GameInfo.GameInfo_Soccar:GameReplicationInfoArchetype':
             classname = 'TAGame.GRI_TA'
         elif archname == 'GameInfo_Season.GameInfo.GameInfo_Season:GameReplicationInfoArchetype':
@@ -46,6 +47,12 @@ class PropertyMapper:
         return classname
 
     def _get_netprops_for_class(self, netcache, classname):
+        '''
+        Recursively search netcache Tree for our class. When netcache is found return Mapping of each netcache
+        we traversed to that point. The Boolean return is a workaround in case the found netcache has an empty mapping
+        there may be a better way to do that. But for now I'm glad as fuck that shit actually works. I should have used
+        some kind of tree librarie here or a defaultdict or whatever. But its a once per classname thing, so yeah
+        '''
         mappings = {}
         for k, v in netcache.items():
             if type(k) == str and classname in k:

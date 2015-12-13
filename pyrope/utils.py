@@ -7,7 +7,8 @@ FLOAT_BE_32 = 'floatbe:32'
 BOOL = 'bool'
 
 
-class ParsingException(Exception): pass
+class ParsingError(Exception):
+    pass
 
 
 def read_string(bitstream):  # TODO OPTIONAL: CHECK IF PROPERLY NULL TERMINATED
@@ -99,32 +100,3 @@ def _read_serialized_float(max_value, numbits, bitstream):
         inv_scale = 1.0/scale
         value = unscaled_value * inv_scale
     return value
-
-if __name__ == '__main__':
-    v1 = bitstring.ConstBitStream('0b0011000000000000010000000001110000110100000001')
-    v2 = bitstring.ConstBitStream('0x601017b')
-
-    print(read_serialized_vector(v1))
-
-    '''
-ZorMOnkeys version of serialized int reading (Max value of 20 in code, 19 reported to work better)
-public Int32 ReadInt32Max(Int32 maxValue)
-{
-    var maxBits = Math.Floor(Math.Log10(maxValue) / Math.Log10(2)) + 1;
-
-    Int32 value = 0;
-    for(int i = 0; i < maxBits && (value + (1<< i)) <= maxValue; ++i)
-    {
-        value += (ReadBit() ? 1: 0) << i;
-    }
-
-    if ( value > maxValue)
-    {
-        throw new Exception("ReadInt32Max overflowed!");
-    }
-
-    return value;
-}
-
-coded after FBitReader::SerializeInt in ue
-'''
