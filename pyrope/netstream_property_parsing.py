@@ -116,8 +116,8 @@ def read_property_value(property_name, bitstream):
     try:
         value = parsing[property_name](bitstream)
     except KeyError:
-        raise PropertyParsingError("Dont know how to parse bits for %s \n Have some raw Bits: %s"
-                                   % (property_name, bitstream.read('hex:512')))
+        raise PropertyParsingError("Dont know how to parse bits for %s Have some raw Bits: %s"
+                                   % (property_name, bitstream.read('hex:64')))
     return value
 
 

@@ -37,3 +37,12 @@ class Netstream:
         if remaining.int != 0:
             raise NetstreamParsingError("There seems to be meaningful data left in the Netstream", remaining.hex)
         return self.frames
+
+    def get_movement(self, actor=None):
+        if actor:
+            pass
+        else:
+            pass
+
+    def get_actor_list(self):
+        return self.frames[0].actor_appeared

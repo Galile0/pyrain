@@ -151,3 +151,15 @@ class Replay:
                 else:
                     next_cache_index += 1
         return cachelist[-1]
+
+    def get_pos_vector(self):
+        if self.netstream.frames:
+            self.netstream.get_pos()
+        else:
+            raise AttributeError("Frames not yet parsed")
+
+    def get_actor_list(self):
+        if self.netstream.frames:
+            return self.netstream.get_actor_list()
+        else:
+            raise AttributeError("Frames not yet parsed")

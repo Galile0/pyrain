@@ -8,6 +8,7 @@ class FrameParsingError(Exception):
 
 class Frame:
     actor_alive = {}  # Map of ActorID:Archtype shared across Frames
+    actor_appeared = {}
 
     def __init__(self, framenum):
         self.framenum = framenum
@@ -41,14 +42,15 @@ class Frame:
             new = netstream.read(BOOL)
             if new:
                 data = self._parse_new_actor(netstream, objects)
+                self.actor_appeared[actorid] = data['type_name']
                 self.actor_alive[actorid] = data['type_name']  # Add actor to currently exist.
             else:
                 try:
                     data = self._parse_existing_actor(netstream, self.actor_alive[actorid], objects, propertymapper)
-                except FrameParsingError as e:
-                    e.args['actor_type'] = self.actor_alive[actorid]
-                    e.args['actor_id'] = actorid
-                    e.args['actors'] = actors
+                except PropertyParsingError as e:
+                    e.args += ({"CurrFrameActors": actors},
+                               {"ErrorActorType": self.actor_alive[actorid],
+                                "ErrorActorId": actorid})
                     raise e
             actors.append({
                 'startpos': startpos,
@@ -67,11 +69,11 @@ class Frame:
             try:
                 property_value = read_property_value(property_name, netstream)
             except PropertyParsingError as e:
-                print(e)
                 properties.append({
                     'property_id': property_id,
                     'property_name': property_name})
-                raise FrameParsingError(properties)
+                e.args += ("Properties so far: %s" % properties,)
+                raise e
             properties.append({'property_id': property_id,
                                'property_name': property_name,
                                'property_value': property_value})
