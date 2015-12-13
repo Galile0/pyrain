@@ -11,10 +11,10 @@ class Frame:
     actor_appeared = {}
 
     def __init__(self, framenum):
-        self.framenum = framenum
+        # self.framenum = framenum
         self.current = None
         self.delta = None
-        self.actors = []
+        self.actors = None
 
     def parse_frame(self, netstream, objects, propertymapper):
         self.current = reverse_bytewise(netstream.read('bits:32')).floatle
@@ -24,7 +24,7 @@ class Frame:
         self.actors = self._parse_actors(netstream, objects, propertymapper)
 
     def _parse_actors(self, netstream, objects, propertymapper):
-        actors = []
+        actors = {}
         while True:  # Actor Replicating Loop
             startpos = netstream.pos
             actor_present = netstream.read(BOOL)
@@ -54,13 +54,14 @@ class Frame:
                                {"ErrorActorType": self.actor_alive[actorid],
                                 "ErrorActorId": actorid})
                     raise e
-            actors.append({
+            shorttype = str(actorid) + "_" + self.actor_alive[actorid].split('.')[-1].split(':')[-1]
+            actors[shorttype] = {
                 'startpos': startpos,
                 'actor_type': self.actor_alive[actorid],
                 'actor_id': actorid,
                 'open': channel,
                 'new': new,
-                'data': data})
+                'data': data}
         return actors
 
     def _parse_existing_actor(self, netstream, actor_type, objects, propertymapper):

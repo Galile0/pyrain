@@ -1,9 +1,32 @@
 import json
-
 from pyrope.frame import Frame, FrameParsingError
 from pyrope.netstream_property_mapping import PropertyMapper
 from pyrope.utils import reverse_bytewise
 import sys
+
+'''
+Serialization Structure for Frame as follows:
+{
+ FrameID: {
+           CurrentTime: Float,
+           DeltaTime: Float,
+           Actors: {
+                    Shortname: {
+                                actorId: Int,
+                                actor_type: FullType,
+                                new: boolean,
+                                open: boolean,
+                                startpos: int,
+                                data: Array[{
+                                             property_id: int,
+                                             property_name: str,
+                                             property_value: ArrayOfDifferentDataTypes
+                                            }]
+                                }
+                    }
+           }
+}
+'''
 
 
 class NetstreamParsingError(Exception):
@@ -17,7 +40,7 @@ class Netstream:
         self._toolbar_width = 50
 
     def parse_frames(self, framenum, objects, netcache):
-        self.frames = []
+        self.frames = {}
 
         sys.stdout.write("[%s]" % (" " * self._toolbar_width))
         sys.stdout.flush()
@@ -32,7 +55,7 @@ class Netstream:
             except FrameParsingError as e:
                 e.args += ({"LastFrameActors": self.frames[i-1].actors},)
                 raise e
-            self.frames.append(frame)
+            self.frames[i] = frame
 
             if i % update_bar_each == 0:
                 sys.stdout.write("-")
@@ -54,4 +77,4 @@ class Netstream:
         return self.frames[0].actor_appeared
 
     def to_json(self):
-        return json.dumps(self, default=lambda o: [f.__dict__ for f in self.frames], sort_keys=True, indent=2)
+        return json.dumps(self, default=lambda o: {k:v.__dict__ for k,v in self.frames.items()}, sort_keys=True, indent=2)
