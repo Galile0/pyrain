@@ -1,3 +1,5 @@
+import json
+
 from pyrope.frame import Frame, FrameParsingError
 from pyrope.netstream_property_mapping import PropertyMapper
 from pyrope.utils import reverse_bytewise
@@ -50,3 +52,6 @@ class Netstream:
 
     def get_actor_list(self):
         return self.frames[0].actor_appeared
+
+    def to_json(self):
+        return json.dumps(self, default=lambda o: [f.__dict__ for f in self.frames], sort_keys=True, indent=2)
