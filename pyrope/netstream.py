@@ -1,4 +1,4 @@
-from pyrope.frame import Frame
+from pyrope.frame import Frame, FrameParsingError
 from pyrope.netstream_property_mapping import PropertyMapper
 from pyrope.utils import reverse_bytewise
 import sys
@@ -23,9 +23,13 @@ class Netstream:
         update_bar_each = framenum//self._toolbar_width
 
         propertymapper = PropertyMapper(netcache)
-        for i in range(framenum+2):
+        for i in range(framenum):
             frame = Frame(i)
-            frame.parse_frame(self._netstream, objects, propertymapper)
+            try:
+                frame.parse_frame(self._netstream, objects, propertymapper)
+            except FrameParsingError as e:
+                e.args += ({"LastFrameActors": self.frames[i-1].actors},)
+                raise e
             self.frames.append(frame)
 
             if i % update_bar_each == 0:

@@ -19,6 +19,8 @@ class Frame:
     def parse_frame(self, netstream, objects, propertymapper):
         self.current = reverse_bytewise(netstream.read('bits:32')).floatle
         self.delta = reverse_bytewise(netstream.read('bits:32')).floatle
+        if self.current < 0.001 or self.delta < 0.001:
+            raise FrameParsingError("Last Frame caused some offset")
         self.actors = self._parse_actors(netstream, objects, propertymapper)
 
     def _parse_actors(self, netstream, objects, propertymapper):
@@ -72,7 +74,7 @@ class Frame:
                 properties.append({
                     'property_id': property_id,
                     'property_name': property_name})
-                e.args += ("Properties so far: %s" % properties,)
+                e.args += ({"Props_till_err": properties},)
                 raise e
             properties.append({'property_id': property_id,
                                'property_name': property_name,

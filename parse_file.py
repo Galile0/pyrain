@@ -2,6 +2,7 @@ import json
 import pprint
 import traceback
 
+from pyrope.frame import FrameParsingError
 from pyrope.netstream_property_parsing import PropertyParsingError
 from pyrope.replay import Replay
 
@@ -12,7 +13,7 @@ if __name__ == '__main__':
     replay = Replay("testfiles/C51C0.replay") # Thats a special one T_T
     try:
         replay.parse(parse_header=True, parse_netstream=True)
-    except PropertyParsingError as e:
+    except (PropertyParsingError, FrameParsingError) as e:
         print('\n')
         for arg in e.args:
             pprint.pprint(arg)

@@ -108,7 +108,8 @@ parsing = {  # thanks to https://github.com/jjbott/RocketLeagueReplayParser/ he 
     "TAGame.CarComponent_Dodge_TA:DodgeTorque": lambda x: _read_location(x),
     "ProjectX.GRI_X:GameServerID": lambda x: _read_qword(x),
     "ProjectX.GRI_X:Reservations": lambda x: _read_reservations(x),
-    "TAGame.VehiclePickup_TA:ReplicatedPickupData": lambda x: _read_pickup(x)
+    "TAGame.VehiclePickup_TA:ReplicatedPickupData": lambda x: _read_pickup(x),
+    "TAGame.Car_TA:ReplicatedDemolish": lambda x: _read_demolish(x)
 }
 
 
@@ -243,6 +244,17 @@ def _read_reservations(bitstream):
     flag_1 = _read_bool(bitstream)
     flag_2 = _read_bool(bitstream)
     return unknown, name, flag_1, flag_2
+
+
+def _read_demolish(bitstream):
+    result = {}
+    atk_present = _read_bool(bitstream)
+    result['atk'] = _read_int(bitstream)
+    vic_present = _read_bool(bitstream)
+    result['vic'] = _read_int(bitstream)
+    result['atk_vec'] = read_serialized_vector(bitstream)
+    result['atk_vec'] = read_serialized_vector(bitstream)
+    return result
 
 
 class PropertyParsingError(Exception):
