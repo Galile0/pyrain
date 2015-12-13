@@ -50,11 +50,14 @@ class Frame:
                 try:
                     data = self._parse_existing_actor(netstream, self.actor_alive[actorid], objects, propertymapper)
                 except PropertyParsingError as e:
-                    e.args += ({"CurrFrameActors": actors},
-                               {"ErrorActorType": self.actor_alive[actorid],
-                                "ErrorActorId": actorid})
+                    e.args += ({'CurrFrameActors': actors},
+                               {'ErrorActorType': self.actor_alive[actorid],
+                                'ErrorActorId': actorid})
                     raise e
-            shorttype = str(actorid) + "_" + self.actor_alive[actorid].split('.')[-1].split(':')[-1]
+            if new:
+                shorttype = 'n'+str(actorid) + '_' + self.actor_alive[actorid].split('.')[-1].split(':')[-1]
+            else:
+                shorttype = 'x'+str(actorid) + '_' + self.actor_alive[actorid].split('.')[-1].split(':')[-1]
             actors[shorttype] = {
                 'startpos': startpos,
                 'actor_type': self.actor_alive[actorid],
