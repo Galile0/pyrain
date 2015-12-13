@@ -30,7 +30,7 @@ class ReplayParser:
         parsed_replay['keyframes'] = self._decode_keyframes(self.replay)
         parsed_replay['netstream_size'] = self.replay.read(UINT_32)
         netstream = self.replay.read(parsed_replay['netstream_size']*8)
-        parsed_replay['netstream_data'] = netstream.hex
+        #parsed_replay['netstream_data'] = netstream.hex
         parsed_replay['dbg_log'] = self._decode_dbg_log(self.replay)
         parsed_replay['goal_frames'] = self._decode_goalframes(self.replay)
         parsed_replay['packages'] = self._decode_packages(self.replay)

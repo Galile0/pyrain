@@ -107,7 +107,9 @@ parsing = {  # thanks to https://github.com/jjbott/RocketLeagueReplayParser/ he 
     "TAGame.Ball_TA:ReplicatedExplosionData": lambda x: _read_explosion(x),
     "Engine.Actor:Role": lambda x: _read_enum(x),
     "Engine.Actor:Location": lambda x: _read_location(x),
-    "TAGame.CarComponent_Dodge_TA:DodgeTorque": lambda x: _read_location(x)
+    "TAGame.CarComponent_Dodge_TA:DodgeTorque": lambda x: _read_location(x),
+    "ProjectX.GRI_X:GameServerID": lambda x: _read_qword(x),
+    "ProjectX.GRI_X:Reservations": lambda x: _read_reservations(x)
 }
 
 
@@ -127,7 +129,7 @@ def _read_flagged_int(bitstream):
 
 
 def _read_int(bitstream):
-    return reverse_bytewise(bitstream.read('bits:32')).uintle
+    return reverse_bytewise(bitstream.read('bits:32')).intle
 
 
 def _read_byte(bitstream):
@@ -143,7 +145,7 @@ def _read_float(bitstream):
 
 
 def _read_string(bitstream):  # Kinda copypasta from utils.read_string ... not feelin to good about this :/
-    length = _read_int(bitstream)*8
+    length = _read_int(bitstream)*8  # but this is reverse and shit...so yeah
     if length < 0:
         length *= -2  # Thats hard to read, maybe I should untangle it? eh whatever TODO untangle
         return reverse_bytewise(bitstream.read('bits:'+str(length))).bytes[:-2].decode('utf-16')
@@ -172,7 +174,7 @@ def _read_unique_id(bitstream):
     else:  # ayyy
         uid = reverse_bytewise(bitstream.read('bits:24')).hex
     playernumber = _read_byte(bitstream)
-    return uid, playernumber
+    return system, uid, playernumber
 
 
 def _read_cam_settings(bitstream):
@@ -213,9 +215,9 @@ def _read_pickup(bitstream):
     instigator = _read_bool(bitstream)
     # return _read_int(bitstream), _read_bool(bitstream)
     if instigator:
-        print("instigator present")
+        # print("instigator present")
         return _read_int(bitstream), _read_bool(bitstream)  #Instigator + picked up
-    print("no instigator?")
+    # print("no instigator?")
     return _read_bool(bitstream)
 
 
@@ -232,3 +234,18 @@ def _read_enum(bitstream):
 
 def _read_location(bitstream):
     return read_serialized_vector(bitstream)
+
+
+def _read_qword(bitstream):
+    return _read_int(bitstream), _read_int(bitstream)
+
+
+def _read_reservations(bitstream):
+    unknown = reverse_bytewise(bitstream.read('bits:3')).hex
+    system, uid, playernum = _read_unique_id(bitstream)
+    name = "Not Set"
+    if system != 0:
+        name = _read_string(bitstream)
+    flag_1 = _read_bool(bitstream)
+    flag_2 = _read_bool(bitstream)
+    return unknown, name, flag_1, flag_2
