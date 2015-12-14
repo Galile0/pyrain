@@ -76,5 +76,13 @@ class Netstream:
     def get_actor_list(self):
         return self.frames[0].actor_appeared
 
-    def to_json(self):
+    def to_json(self, skip_empty=True):
+        def nonempty(x):
+            frames = {}
+            for k, v in self.frames.items():
+                if v.actors:
+                    frames[k] = v.__dict__
+            return frames
+        if skip_empty:
+            return json.dumps(self, default=nonempty, sort_keys=True, indent=2)
         return json.dumps(self, default=lambda o: {k:v.__dict__ for k,v in self.frames.items()}, sort_keys=True, indent=2)
