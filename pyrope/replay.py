@@ -177,13 +177,10 @@ class Replay:
         for num, frame in self.netstream.frames.items():
             for shortname, value in frame.actors.items():
                 if value['actor_type'] == "Archetypes.Car.Car_Default" and value['new'] == False:
-                    for property in value['data']:
-                        if property['property_name'] == "Engine.Pawn:PlayerReplicationInfo":
-                            a = value['actor_id']
-                            if a not in result:
-                                b = property['property_value'][1]
-                                c = frame.actors['x'+str(b)+'_'+"Default__PRI_TA"]['data']
-                                result[a] = {'player_actor_id':b,
-                                             'player_data': c }
-                            break
+                    a = value['actor_id']
+                    if a not in result:
+                        b = value['data']['Engine.Pawn:PlayerReplicationInfo'][1]
+                        c = frame.actors['x'+str(b)+'_'+"Default__PRI_TA"]['data']['Engine.PlayerReplicationInfo:PlayerName']
+                        result[a] = {'player_actor_id':b,
+                                     'player_data': c }
         return result
