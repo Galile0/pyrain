@@ -33,14 +33,17 @@ if __name__ == '__main__':
 
     replay.netstream = pickle.load(open(filename+'/netstream.pickle', 'rb'))
     pprint.pprint(replay.get_player())
-    positions = replay.get_pos_of_player(5)
-    print(positions)
+    player_pos = replay.get_pos_of_player(5)
+    ball_pos = replay.get_ball_pos()
+    # print(positions)
     from mpl_toolkits.mplot3d import Axes3D
     import matplotlib.pyplot as plt
 
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    ax.scatter(positions[6]['x'], positions[6]['y'], positions[6]['z'], c='r', marker='o')
+    # ax.scatter(player_pos[6]['x'], player_pos[6]['y'], player_pos[6]['z'], c='r', marker='o')
+    # ax.scatter(ball_pos['x'], ball_pos['y'], ball_pos['z'], c='b', marker='o')
+    ax.scatter(player_pos[27]['x'], player_pos[27]['y'], player_pos[27]['z'], c='g', marker='o')
 
     ax.set_xlabel('X Label')
     ax.set_ylabel('Y Label')

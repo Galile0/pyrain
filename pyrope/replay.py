@@ -188,14 +188,25 @@ class Replay:
         result = {}
         for car in cars:
             result[car] = {'x': [], 'y': [], 'z': []}
-        for num, frame in sorted(self.netstream.frames.items()):
+        for num, frame in self.netstream.frames.items():
             for actor in frame.actors.values():
-                if actor['actor_id'] in cars and not actor['new'] and actor['open']:
+                if actor['actor_id'] in cars:
                     try:
                         pos = actor['data']['TAGame.RBActor_TA:ReplicatedRBState']['pos']
                         result[actor['actor_id']]['x'].append(pos[0])
                         result[actor['actor_id']]['y'].append(pos[1])
                         result[actor['actor_id']]['z'].append(pos[2])
-                        # result.append(pos)
+                    except: pass
+        return result
+
+    def get_ball_pos(self):
+        result = {'x': [], 'y': [], 'z': []}
+        for num, frame in self.netstream.frames.items():
+            for actor in frame.actors.values():
+                if "Ball_Default" in actor['actor_type']:
+                    try:
+                        result['x'].append(actor['data']['TAGame.RBActor_TA:ReplicatedRBState']['pos'][0])
+                        result['y'].append(actor['data']['TAGame.RBActor_TA:ReplicatedRBState']['pos'][1])
+                        result['z'].append(actor['data']['TAGame.RBActor_TA:ReplicatedRBState']['pos'][2])
                     except: pass
         return result
