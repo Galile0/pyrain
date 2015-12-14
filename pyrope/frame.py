@@ -68,21 +68,16 @@ class Frame:
         return actors
 
     def _parse_existing_actor(self, netstream, actor_type, objects, propertymapper):
-        properties = []
+        properties = {}
         while netstream.read(BOOL):
             property_id = read_serialized_int(netstream, propertymapper.get_property_max_id(actor_type))
             property_name = objects[propertymapper.get_property_name(actor_type, property_id)]
             try:
                 property_value = read_property_value(property_name, netstream)
             except PropertyParsingError as e:
-                properties.append({
-                    'property_id': property_id,
-                    'property_name': property_name})
                 e.args += ({"Props_till_err": properties},)
                 raise e
-            properties.append({'property_id': property_id,
-                               'property_name': property_name,
-                               'property_value': property_value})
+            properties[property_name] = property_value
         return properties
 
     def _parse_new_actor(self, netstream, objects):
