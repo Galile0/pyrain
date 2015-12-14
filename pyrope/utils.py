@@ -53,14 +53,15 @@ def read_serialized_int(bitstream, max_val=19):
 
 
 def read_serialized_vector(bitstream):
-    # pos_start = netstream.pos
-    length = read_serialized_int(bitstream)+2
-    # l_bits = netstream.pos - pos_start
-    # print("Length %d coded in %d bits" % (length, l_bits))
-    x = reverse_bytewise(bitstream.read(length)).uintle
-    y = reverse_bytewise(bitstream.read(length)).uintle
-    z = reverse_bytewise(bitstream.read(length)).uintle
-    # netstream.pos = pos
+    numbits = read_serialized_int(bitstream)
+    bias = 1 << (numbits+1)
+    max = numbits + 2
+    dx = reverse_bytewise(bitstream.read(max)).intle
+    dy = reverse_bytewise(bitstream.read(max)).intle
+    dz = reverse_bytewise(bitstream.read(max)).intle
+    x = dx-bias
+    y = dy-bias
+    z = dz-bias
     return x, y, z
 
 
