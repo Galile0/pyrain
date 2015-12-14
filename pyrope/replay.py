@@ -168,19 +168,34 @@ class Replay:
         player = {}
         for num, frame in self.netstream.frames.items():
             for shortname, value in frame.actors.items():
-                if value['actor_type'] == "TAGame.Default__PRI_TA" and shortname not in player and value['new'] == False:
-                    player[shortname] = value
+                if value['actor_type'] == "TAGame.Default__PRI_TA" and value['new'] == False:
+                    try:
+                        player[value['data']['Engine.PlayerReplicationInfo:PlayerName']] = value['actor_id']
+                    except: pass
         return player
 
-    def car_id_to_player(self):
-        result = {}
+    def player_to_car_ids(self, playerid):
+        result = []
         for num, frame in self.netstream.frames.items():
-            for shortname, value in frame.actors.items():
-                if value['actor_type'] == "Archetypes.Car.Car_Default" and value['new'] == False:
-                    a = value['actor_id']
-                    if a not in result:
-                        b = value['data']['Engine.Pawn:PlayerReplicationInfo'][1]
-                        c = frame.actors['x'+str(b)+'_'+"Default__PRI_TA"]['data']['Engine.PlayerReplicationInfo:PlayerName']
-                        result[a] = {'player_actor_id':b,
-                                     'player_data': c }
+            for value in frame.actors.values():
+                if "Engine.Pawn:PlayerReplicationInfo" in value['data']: # Found Entry mapping player_actor to car:actor
+                    if value['actor_id'] not in result:
+                        result.append(value['actor_id'])
+        return result
+
+    def get_pos_of_player(self, actor_id_player):
+        cars = self.player_to_car_ids(actor_id_player)
+        result = {}
+        for car in cars:
+            result[car] = {'x': [], 'y': [], 'z': []}
+        for num, frame in sorted(self.netstream.frames.items()):
+            for actor in frame.actors.values():
+                if actor['actor_id'] in cars and not actor['new'] and actor['open']:
+                    try:
+                        pos = actor['data']['TAGame.RBActor_TA:ReplicatedRBState']['pos']
+                        result[actor['actor_id']]['x'].append(pos[0])
+                        result[actor['actor_id']]['y'].append(pos[1])
+                        result[actor['actor_id']]['z'].append(pos[2])
+                        # result.append(pos)
+                    except: pass
         return result
