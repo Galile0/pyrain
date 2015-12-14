@@ -11,22 +11,25 @@ from pyrope.replay import Replay
 if __name__ == '__main__':
     filename = "FD1D"
     # filename = "3BF9"
+    # filename = "C51C0"
     replay = Replay("testfiles/"+filename+".replay")
-    # replay = Replay("testfiles/3BF9.replay")
-    # replay = Replay("testfiles/C51C0.replay") # Thats a special one T_T
-    try:
-        replay.parse(parse_header=True, parse_netstream=True)
-    except (PropertyParsingError, FrameParsingError) as e:
-        print('\n')
-        for arg in e.args:
-            pprint.pprint(arg)
-    # else:
-    #     print(replay.get_actor_list())
-    os.makedirs(filename, exist_ok=True)
-    with open(filename+'/keyframes.json', 'w', encoding='utf-8') as outfile:
-        json.dump(replay.keyframes, outfile, indent=2, ensure_ascii=False)
-    with open(filename+'/header.json', 'w', encoding='utf-8') as outfile:
-        json.dump(replay.header.parsed, outfile, indent=2, ensure_ascii=False)
-    with open(filename+'/netstream.json', 'w', encoding='utf-8') as outfile:
-        # json.dump(replay.netstream.frames, outfile, indent=2, ensure_ascii=False)
-        outfile.write(replay.netstream.to_json())
+
+    # try:
+    #     replay.parse(parse_header=True, parse_netstream=True)
+    #     # pprint.pprint(replay.car_id_to_player())
+    # except (PropertyParsingError, FrameParsingError) as e:
+    #     print('\n')
+    #     for arg in e.args:
+    #         pprint.pprint(arg)
+    # pickle.dump(replay.netstream, open(filename+'/netstream.pickle', 'wb'))
+    # os.makedirs(filename, exist_ok=True)
+    # with open(filename+'/keyframes.json', 'w', encoding='utf-8') as outfile:
+    #     json.dump(replay.keyframes, outfile, indent=2, ensure_ascii=False)
+    # with open(filename+'/header.json', 'w', encoding='utf-8') as outfile:
+    #     json.dump(replay.header.parsed, outfile, indent=2, ensure_ascii=False)
+    # with open(filename+'/netstream.json', 'w', encoding='utf-8') as outfile:
+    #     # json.dump(replay.netstream.frames, outfile, indent=2, ensure_ascii=False)
+    #     outfile.write(replay.netstream.to_json())
+
+    replay.netstream = pickle.load(open(filename+'/netstream.pickle', 'rb'))
+    pprint.pprint(replay.car_id_to_player())

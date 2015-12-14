@@ -163,3 +163,27 @@ class Replay:
             return self.netstream.get_actor_list()
         else:
             raise AttributeError("Frames not yet parsed")
+
+    def get_player(self): # Todo add check that frames are actually parsed
+        player = {}
+        for num, frame in self.netstream.frames.items():
+            for shortname, value in frame.actors.items():
+                if value['actor_type'] == "TAGame.Default__PRI_TA" and shortname not in player and value['new'] == False:
+                    player[shortname] = value
+        return player
+
+    def car_id_to_player(self):
+        result = {}
+        for num, frame in self.netstream.frames.items():
+            for shortname, value in frame.actors.items():
+                if value['actor_type'] == "Archetypes.Car.Car_Default" and value['new'] == False:
+                    for property in value['data']:
+                        if property['property_name'] == "Engine.Pawn:PlayerReplicationInfo":
+                            a = value['actor_id']
+                            if a not in result:
+                                b = property['property_value'][1]
+                                c = frame.actors['x'+str(b)+'_'+"Default__PRI_TA"]['data']
+                                result[a] = {'player_actor_id':b,
+                                             'player_data': c }
+                            break
+        return result
