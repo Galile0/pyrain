@@ -34,6 +34,11 @@ class Frame:
             channel = netstream.read(BOOL)
             if not channel:
                 try:
+                    shorttype = 'g'+str(actorid) + '_' + self.actor_alive[actorid].split('.')[-1].split(':')[-1]
+                    actors[shorttype] = {'startpos': startpos,
+                                         'actor_id': actorid,
+                                         'actor_type': self.actor_alive[actorid],
+                                         'open': channel}
                     del self.actor_alive[actorid]  # Delete from active actor list
                 except KeyError:
                     raise FrameParsingError("Tried to delete non existent actor", actors)
@@ -52,9 +57,9 @@ class Frame:
                                 'ErrorActorId': actorid})
                     raise e
             if new:
-                shorttype = 'n'+str(actorid) + '_' + self.actor_alive[actorid].split('.')[-1].split(':')[-1]
+                shorttype = 'c'+str(actorid) + '_' + self.actor_alive[actorid].split('.')[-1].split(':')[-1]
             else:
-                shorttype = 'x'+str(actorid) + '_' + self.actor_alive[actorid].split('.')[-1].split(':')[-1]
+                shorttype = 'e'+str(actorid) + '_' + self.actor_alive[actorid].split('.')[-1].split(':')[-1]
             actors[shorttype] = {
                 'startpos': startpos,
                 'actor_id': actorid,

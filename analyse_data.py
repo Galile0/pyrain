@@ -19,7 +19,6 @@ if __name__ == '__main__':
     player_id = 4
     player_pos = replay.get_player_pos(player_id)
     ball_pos = replay.get_ball_pos()
-    print(player_pos)
     plots = []
 
     for i, actor in player_pos.items():
