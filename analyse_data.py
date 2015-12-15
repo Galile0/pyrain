@@ -15,18 +15,22 @@ if __name__ == '__main__':
     replay.netstream = pickle.load(open(filename+'/netstream.pickle', 'rb'))
     print("Please Enter PlayerID from following List:")
     pprint.pprint(replay.get_player())
-    player_id = int(input("Enter ID:"))
-    # player_id = 3
+    # player_id = int(input("Enter ID:"))
+    player_id = 4
     player_pos = replay.get_player_pos(player_id)
     ball_pos = replay.get_ball_pos()
+    print(player_pos)
     plots = []
-    fig = plt.figure()
-    for i, actor in enumerate(player_pos):
-        x = np.array(player_pos[actor]['x'])
-        y = np.array(player_pos[actor]['y'])
-        z = np.array(player_pos[actor]['z'])
-        ax = fig.add_subplot(331+i, projection='3d')
-        ax.scatter(x, y, z, c='r', marker='o')
+
+    for i, actor in player_pos.items():
+        fig = plt.figure()
+        x = np.array(actor['x'])
+        y = np.array(actor['y'])
+        z = np.array(actor['z'])
+        ax = fig.add_subplot(111, projection='3d')
+        # ax.plot(x,y,zs=0, zdir='z')
+        # ax.scatter(x, y, z, c='r', marker='o')
+        ax.plot_wireframe(x, y, z, rstride=1000, cstride=1000)
         # ax.scatter(ball_pos['x'], ball_pos['y'], ball_pos['z'], c='b', marker='o')
         ax.set_xlabel('X')
         ax.set_ylabel('Y')

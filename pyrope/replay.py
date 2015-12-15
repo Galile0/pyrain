@@ -193,6 +193,7 @@ class Replay:
                 if actor['actor_id'] in cars:
                     try:
                         pos = actor['data']['TAGame.RBActor_TA:ReplicatedRBState']['pos']
+                        if pos[2] < 0: continue # Engine seems to hide players under the map when destroyed
                         result[actor['actor_id']]['x'].append(pos[0])
                         result[actor['actor_id']]['y'].append(pos[1])
                         result[actor['actor_id']]['z'].append(pos[2])
