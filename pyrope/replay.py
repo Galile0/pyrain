@@ -178,7 +178,7 @@ class Replay:
         result = []
         for frame in self.netstream.frames.values():
             for actor in frame.actors.values():
-                if "Engine.Pawn:PlayerReplicationInfo" in actor['data']:
+                if actor['open'] and "Engine.Pawn:PlayerReplicationInfo" in actor['data']:
                     if actor['actor_id'] not in result and actor['data']["Engine.Pawn:PlayerReplicationInfo"][1]==playerid:
                         result.append(actor['actor_id'])
         return result
@@ -187,16 +187,18 @@ class Replay:
         cars = self.player_to_car_ids(playerid)
         result = {}
         for car in cars:
-            result[car] = {'x': [], 'y': [], 'z': []}
+            # result[car] = {'x': [], 'y': [], 'z': []}
+            result[car] = []
         for num, frame in self.netstream.frames.items():
             for actor in frame.actors.values():
                 if actor['actor_id'] in cars:
                     try:
                         pos = actor['data']['TAGame.RBActor_TA:ReplicatedRBState']['pos']
-                        if pos[2] < 0: continue # Engine seems to hide players under the map when destroyed
-                        result[actor['actor_id']]['x'].append(pos[0])
-                        result[actor['actor_id']]['y'].append(pos[1])
-                        result[actor['actor_id']]['z'].append(pos[2])
+                        # if pos[2] < 0: continue # Engine seems to hide players under the map when destroyed
+                        # result[actor['actor_id']]['x'].append(pos[0])
+                        # result[actor['actor_id']]['y'].append(pos[1])
+                        # result[actor['actor_id']]['z'].append(pos[2])
+                        result[actor['actor_id']].append(pos)
                     except: pass
         return result
 
