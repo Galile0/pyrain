@@ -58,7 +58,8 @@ def heat_2d(coords, draw_map=True, bins=75):
         if draw_map:
             ax.plot(*zip(*stadium), c='r')
         ax.axis('off')
-    plt.tight_layout()
+    # plt.tight_layout(rect=[0,0,1,1])
+    fig.subplots_adjust(hspace=0.05, wspace=0.05, left=0.005, top=1, bottom=0)
     plt.show()
 
 
@@ -89,19 +90,19 @@ def heat_3d():
 
 
 if __name__ == '__main__':
-    # filename = "FD1D"
-    filename = "91D6"
+    filename = "FD1D"
+    # filename = "91D6"
     # filename = "3BF9"
     # filename = "C51C0"
 
     replay = Replay("testfiles/" + filename + ".replay")
     replay.netstream = pickle.load(open(filename + '/netstream.pickle', 'rb'))
     print("Please Enter PlayerID from following List:")
-    pprint.pprint(replay.get_player())
+    # pprint.pprint(replay.get_player())
     # player_id = int(input("Enter ID:"))
-    player_id = 4
+    player_id = 3
     player_pos = replay.get_player_pos(player_id)
-    ball_pos = replay.get_ball_pos()
+    # ball_pos = replay.get_ball_pos()
     plots = []
     if cloud:
         heat_3d()
