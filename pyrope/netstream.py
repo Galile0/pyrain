@@ -49,7 +49,7 @@ class Netstream:
 
         propertymapper = PropertyMapper(netcache)
         for i in range(framenum):
-            frame = Frame(i)
+            frame = Frame()
             try:
                 frame.parse_frame(self._netstream, objects, propertymapper)
             except FrameParsingError as e:

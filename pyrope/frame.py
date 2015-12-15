@@ -8,10 +8,8 @@ class FrameParsingError(Exception):
 
 class Frame:
     actor_alive = {}  # Map of ActorID:Archtype shared across Frames
-    actor_appeared = {}
 
-    def __init__(self, framenum):
-        # self.framenum = framenum
+    def __init__(self):
         self.current = None
         self.delta = None
         self.actors = None
@@ -43,9 +41,8 @@ class Frame:
 
             new = netstream.read(BOOL)
             if new:
-                data = self._parse_new_actor(netstream, objects)
-                self.actor_appeared[actorid] = data['type_name']
-                self.actor_alive[actorid] = data['type_name']  # Add actor to currently exist.
+                type_name, data = self._parse_new_actor(netstream, objects)
+                self.actor_alive[actorid] = type_name
             else:
                 try:
                     data = self._parse_existing_actor(netstream, self.actor_alive[actorid], objects, propertymapper)
@@ -60,8 +57,8 @@ class Frame:
                 shorttype = 'x'+str(actorid) + '_' + self.actor_alive[actorid].split('.')[-1].split(':')[-1]
             actors[shorttype] = {
                 'startpos': startpos,
-                'actor_type': self.actor_alive[actorid],
                 'actor_id': actorid,
+                'actor_type': self.actor_alive[actorid],
                 'open': channel,
                 'new': new,
                 'data': data}
@@ -82,12 +79,12 @@ class Frame:
 
     def _parse_new_actor(self, netstream, objects):
         actor = {}
-        actor['unknown_flag'] = netstream.read(BOOL)
-        actor['type_id'] = reverse_bytewise(netstream.read('bits:32')).uintle
-        actor['type_name'] = objects[actor['type_id']]
-        if 'TheWorld' in actor['type_name']:  # World types are Vector Less
-            return actor
+        actor['flag'] = netstream.read(BOOL)
+        type_id = reverse_bytewise(netstream.read('bits:32')).uintle
+        type_name = objects[type_id]
+        if 'TheWorld' in type_name:  # World types are Vector Less
+            return type_name, actor
         actor['vector'] = read_serialized_vector(netstream)
-        if 'Ball_Default' in actor['type_name'] or 'Car_Default' in actor['type_name']:
+        if 'Ball_Default' in type_name or 'Car_Default' in type_name:
             actor['rotation'] = read_byte_vector(netstream)
-        return actor
+        return type_name, actor

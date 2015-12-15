@@ -166,8 +166,8 @@ class Replay:
 
     def get_player(self): # Todo add check that frames are actually parsed
         player = {}
-        for num, frame in self.netstream.frames.items():
-            for shortname, value in frame.actors.items():
+        for frame in self.netstream.frames.values():
+            for value in frame.actors.values():
                 if value['actor_type'] == "TAGame.Default__PRI_TA" and value['new'] == False:
                     try:
                         player[value['data']['Engine.PlayerReplicationInfo:PlayerName']] = value['actor_id']
@@ -176,15 +176,15 @@ class Replay:
 
     def player_to_car_ids(self, playerid):
         result = []
-        for num, frame in self.netstream.frames.items():
-            for value in frame.actors.values():
-                if "Engine.Pawn:PlayerReplicationInfo" in value['data']: # Found Entry mapping player_actor to car:actor
-                    if value['actor_id'] not in result:
-                        result.append(value['actor_id'])
+        for frame in self.netstream.frames.values():
+            for actor in frame.actors.values():
+                if "Engine.Pawn:PlayerReplicationInfo" in actor['data']:
+                    if actor['actor_id'] not in result and actor['data']["Engine.Pawn:PlayerReplicationInfo"][1]==playerid:
+                        result.append(actor['actor_id'])
         return result
 
-    def get_pos_of_player(self, actor_id_player):
-        cars = self.player_to_car_ids(actor_id_player)
+    def get_player_pos(self, playerid):
+        cars = self.player_to_car_ids(playerid)
         result = {}
         for car in cars:
             result[car] = {'x': [], 'y': [], 'z': []}
