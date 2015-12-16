@@ -187,23 +187,30 @@ class Replay:
                 except: pass
         return result
 
-    def get_player_pos(self, playerid, sep):
+    def get_player_pos(self, playerid, sep=False):
         cars = self.player_to_car_ids(playerid)
         car_data = OrderedDict()
         for car in cars:
-            car_data[car] = {'pos': [], 'destr': 'None'}
+            car_data[car] = {'pos': [], 'destr': None, 'spawned': False}
         for num, frame in self.netstream.frames.items():
+            active_cars = [k for k, v in car_data.items() if not v['destr']]
             for actor in frame.actors.values():
-                if actor['actor_id'] in cars: # Found an Actor that is in our wanted list
-                    if str(actor['actor_id'])+'d' in frame.actors: # We found a destroyed actor, lets investigate
-                        if 'd_Ball_Default' in frame.actors: # Ball got destroyed, only reason -> goal
-                            car_data[actor['actor_id']]['destr'] = 'goal'
-                        else: # Other reason is car exploded
-                            car_data[actor['actor_id']]['destr'] = 'demolish'
+                actor_id = actor['actor_id']
+                if actor_id in active_cars and 'Car' in actor['actor_type']:  # Found actor of car type with id
+                    if any(str(actor_id)+'d' in s for s in frame.actors):  # actor was destr this frame
+                        if any('d_Ball_Default' in s for s in frame.actors):  # ball also was destroyed
+                            car_data[actor_id]['destr'] = 'goal'  # This means the reason is a goal
+                        else:  # Only other reason is left or demolished
+                            car_data[actor_id]['destr'] = 'demolish'
                     try:
                         pos = actor['data']['TAGame.RBActor_TA:ReplicatedRBState']['pos']
-                        car_data[actor['actor_id']]['pos'].append(pos)
+                        car_data[actor_id]['spawned'] = True
+                        active_cars.remove(actor_id)  # We got a position this frame, no need to look further
+                        car_data[actor_id]['pos'].append(pos)
                     except: pass
+            for car in active_cars: # Whats left is what we found no Position update for and whats not destroyed
+                if car_data[car]['spawned'] and not car_data[car]['destr']:
+                    car_data[car]['pos'].append(car_data[car]['pos'][-1])
         result = []
         if sep:
             for v in car_data.values():
@@ -214,7 +221,7 @@ class Replay:
                     result[-1].extend(v['pos'])  # merge pos data since car just respawned normally
                 else:
                     result.append(v['pos'])  # Car got reset because of goal, make new position set
-        else:
+        else:  # If no seperate data for each goal, just throw all positions together
             result.append([pos for v in car_data.values() for pos in v['pos']])
         return result
 

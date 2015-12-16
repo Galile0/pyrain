@@ -26,7 +26,7 @@ stadium = [(x + 100 if x > 0 else x - 100, y + 100 if y > 0 else y - 100) for x,
 # bins for ~1:1 mapping:87x100x62
 
 
-def heat_2d(coords, draw_map=True, bins=25):
+def heat_2d(coords, draw_map=True, bins=(20, 16)):
     fig = plt.figure()
     col = 1
     row = 1
@@ -51,6 +51,7 @@ def heat_2d(coords, draw_map=True, bins=25):
             ax = plt.subplot(sq*100+sq*10+1+i)
         else:
             ax = plt.subplot(row*100+col*10+1+i)
+        print("Building Heatmap %d with %d Data Points" % (i, len(filtered)))
         plt.xlim((4477, -4477))
         plt.ylim((5401, -5401))
         filtered.extend([(5477, 6401), (5477, -6401),
@@ -62,7 +63,7 @@ def heat_2d(coords, draw_map=True, bins=25):
             ax.plot(*zip(*stadium), c='r')
         ax.axis('off')
     # plt.tight_layout(rect=[0,0,1,1])
-    fig.subplots_adjust(hspace=0.05, wspace=0.05, left=0.005, top=1, bottom=0)
+    fig.subplots_adjust(hspace=0.05, wspace=0.05, right=0.995, left=0.005, top=1, bottom=0)
     plt.show()
 
 
@@ -102,8 +103,8 @@ if __name__ == '__main__':
     replay.netstream = pickle.load(open(filename + '/netstream.pickle', 'rb'))
     print("Please Enter PlayerID from following List:")
     pprint.pprint(replay.get_player())
-    player_id = int(input("Enter ID:"))
-    # player_id = 3
+    # player_id = int(input("Enter ID:"))
+    player_id = 4
     player_pos = replay.get_player_pos(player_id, sep=False)
     # ball_pos = replay.get_ball_pos()
     plots = []
