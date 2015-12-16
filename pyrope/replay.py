@@ -187,7 +187,7 @@ class Replay:
                 except: pass
         return result
 
-    def get_player_pos(self, playerid):
+    def get_player_pos(self, playerid, sep):
         cars = self.player_to_car_ids(playerid)
         car_data = OrderedDict()
         for car in cars:
@@ -205,14 +205,17 @@ class Replay:
                         car_data[actor['actor_id']]['pos'].append(pos)
                     except: pass
         result = []
-        for k,v in car_data.items():
-            if not result:  # We need some kind of root
-                result.append(v['pos'])
-                continue
-            if v['destr'] == 'demolish':
-                result[-1].extend(v['pos'])  # merge pos data since car just respawned normally
-            else:
-                result.append(v['pos'])  # Car got reset because of goal, make new position set
+        if sep:
+            for v in car_data.values():
+                if not result:  # We need some kind of root
+                    result.append(v['pos'])
+                    continue
+                if v['destr'] == 'demolish':
+                    result[-1].extend(v['pos'])  # merge pos data since car just respawned normally
+                else:
+                    result.append(v['pos'])  # Car got reset because of goal, make new position set
+        else:
+            result.append([pos for v in car_data.values() for pos in v['pos']])
         return result
 
     def get_ball_pos(self):

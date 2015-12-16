@@ -96,15 +96,15 @@ if __name__ == '__main__':
     # filename = "FD1D"
     # filename = "91D6"
     # filename = "3BF9"
-    filename = "C51C0"
-    # filename = "C747"
+    # filename = "C51C0"
+    filename = "C747"
     replay = Replay("testfiles/" + filename + ".replay")
     replay.netstream = pickle.load(open(filename + '/netstream.pickle', 'rb'))
     print("Please Enter PlayerID from following List:")
     pprint.pprint(replay.get_player())
     player_id = int(input("Enter ID:"))
     # player_id = 3
-    player_pos = replay.get_player_pos(player_id)
+    player_pos = replay.get_player_pos(player_id, sep=False)
     # ball_pos = replay.get_ball_pos()
     plots = []
     if cloud:
