@@ -22,8 +22,9 @@ stadium = [(x + 100 if x > 0 else x - 100, y + 100 if y > 0 else y - 100) for x,
             (3574, 4464), (3453, 4585), (3342, 4695), (3232, 4805), (3108, 4918), (2981, 5001), (2906, 5036),
             (2842, 5060), (2763, 5081), (2646, 5097)]]  # TODO Hardcode stadium size extension
 
-
-def heat_2d(coords, draw_map=True, bins=75):
+# avg car size ~118x82x32 ; Field Size: 10240x8192*2000?;
+# bins for ~1:1 mapping:87x100x62
+def heat_2d(coords, draw_map=True, bins=25):
     fig = plt.figure()
     col = 1
     row = 1
@@ -90,17 +91,17 @@ def heat_3d():
 
 
 if __name__ == '__main__':
-    filename = "FD1D"
+    # filename = "FD1D"
     # filename = "91D6"
     # filename = "3BF9"
     # filename = "C51C0"
-
+    filename = "C747"
     replay = Replay("testfiles/" + filename + ".replay")
     replay.netstream = pickle.load(open(filename + '/netstream.pickle', 'rb'))
     print("Please Enter PlayerID from following List:")
-    # pprint.pprint(replay.get_player())
-    # player_id = int(input("Enter ID:"))
-    player_id = 3
+    pprint.pprint(replay.get_player())
+    player_id = int(input("Enter ID:"))
+    # player_id = 3
     player_pos = replay.get_player_pos(player_id)
     # ball_pos = replay.get_ball_pos()
     plots = []

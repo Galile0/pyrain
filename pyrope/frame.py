@@ -1,3 +1,5 @@
+from collections import OrderedDict
+
 from pyrope.netstream_property_parsing import read_property_value, PropertyParsingError
 from pyrope.utils import reverse_bytewise, BOOL, read_serialized_vector, read_byte_vector, read_serialized_int
 
@@ -7,7 +9,7 @@ class FrameParsingError(Exception):
 
 
 class Frame:
-    actor_alive = {}  # Map of ActorID:Archtype shared across Frames
+    _actor_alive = {}  # Map of ActorID:Archtype shared across Frames
 
     def __init__(self):
         self.current = None
@@ -22,7 +24,8 @@ class Frame:
         self.actors = self._parse_actors(netstream, objects, propertymapper)
 
     def _parse_actors(self, netstream, objects, propertymapper):
-        actors = {}
+        # actors = {}  # TODO Maybe find a way to not rely on OrderedDict just for sorted json output
+        actors = OrderedDict() # Although the slowdown is neglible compared to all the bit reading
         while True:  # Actor Replicating Loop
             startpos = netstream.pos
             actor_present = netstream.read(BOOL)
@@ -34,12 +37,12 @@ class Frame:
             channel = netstream.read(BOOL)
             if not channel:
                 try:
-                    shorttype = 'g'+str(actorid) + '_' + self.actor_alive[actorid].split('.')[-1].split(':')[-1]
+                    shorttype = str(actorid) + 'd' + '_' + self._actor_alive[actorid].split('.')[-1].split(':')[-1]
                     actors[shorttype] = {'startpos': startpos,
                                          'actor_id': actorid,
-                                         'actor_type': self.actor_alive[actorid],
+                                         'actor_type': self._actor_alive[actorid],
                                          'open': channel}
-                    del self.actor_alive[actorid]  # Delete from active actor list
+                    del self._actor_alive[actorid]  # Delete from active actor list
                 except KeyError:
                     raise FrameParsingError("Tried to delete non existent actor", actors)
                 continue
@@ -47,24 +50,24 @@ class Frame:
             new = netstream.read(BOOL)
             if new:
                 type_name, data = self._parse_new_actor(netstream, objects)
-                self.actor_alive[actorid] = type_name
+                self._actor_alive[actorid] = type_name
             else:
                 try:
-                    data = self._parse_existing_actor(netstream, self.actor_alive[actorid], objects, propertymapper)
+                    data = self._parse_existing_actor(netstream, self._actor_alive[actorid], objects, propertymapper)
                 except PropertyParsingError as e:
                     e.args += ({'CurrFrameActors': actors},
-                               {'ErrorActorType': self.actor_alive[actorid],
+                               {'ErrorActorType': self._actor_alive[actorid],
                                 'ErrorActorId': actorid})
                     raise e
             if new:
-                shorttype = 'c'+str(actorid) + '_' + self.actor_alive[actorid].split('.')[-1].split(':')[-1]
+                shorttype = str(actorid) + 'n' + '_' + self._actor_alive[actorid].split('.')[-1].split(':')[-1]
             else:
-                shorttype = 'e'+str(actorid) + '_' + self.actor_alive[actorid].split('.')[-1].split(':')[-1]
+                shorttype = str(actorid) + 'e' + '_' + self._actor_alive[actorid].split('.')[-1].split(':')[-1]
             actors[shorttype] = {
                 'startpos': startpos,
                 'actor_id': actorid,
-                'actor_type': self.actor_alive[actorid],
-                'open': channel,
+                'actor_type': self._actor_alive[actorid],
+                #'open': channel,
                 'new': new,
                 'data': data}
         return actors

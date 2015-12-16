@@ -187,18 +187,16 @@ class Replay:
         cars = self.player_to_car_ids(playerid)
         result = {}
         for car in cars:
-            # result[car] = {'x': [], 'y': [], 'z': []}
-            result[car] = []
+            result[car] = {'pos': []}
         for num, frame in self.netstream.frames.items():
             for actor in frame.actors.values():
                 if actor['actor_id'] in cars:
+                    # TODO Check if actor got destroyed, if so, check if ball got destroyed in the same frame
+                    # if so, add destr: demolish, else add destr: goal
                     try:
                         pos = actor['data']['TAGame.RBActor_TA:ReplicatedRBState']['pos']
-                        # if pos[2] < 0: continue # Engine seems to hide players under the map when destroyed
-                        # result[actor['actor_id']]['x'].append(pos[0])
-                        # result[actor['actor_id']]['y'].append(pos[1])
-                        # result[actor['actor_id']]['z'].append(pos[2])
-                        result[actor['actor_id']].append(pos)
+                        result[actor['actor_id']]['pos'].append(pos)
+
                     except: pass
         return result
 

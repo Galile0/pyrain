@@ -1,9 +1,11 @@
 import json
+from collections import OrderedDict
+
 from pyrope.frame import Frame, FrameParsingError
 from pyrope.netstream_property_mapping import PropertyMapper
 from pyrope.utils import reverse_bytewise
 import sys
-
+import time
 '''
 Serialization Structure for Frame as follows:
 {
@@ -77,12 +79,12 @@ class Netstream:
         return self.frames[0].actor_appeared
 
     def to_json(self, skip_empty=True):
-        def nonempty(x):
+        def nonempty(framedict):
             frames = {}
-            for k, v in self.frames.items():
+            for k, v in framedict:
                 if v.actors:
                     frames[k] = v.__dict__
             return frames
         if skip_empty:
-            return json.dumps(self, default=nonempty, sort_keys=True, indent=2)
-        return json.dumps(self, default=lambda o: {k:v.__dict__ for k,v in self.frames.items()}, sort_keys=True, indent=2)
+            return json.dumps(self, default=lambda o: nonempty(self.frames.items()), indent=2)
+        return json.dumps(self, default=lambda o: {k: v.__dict__ for k, v in self.frames.items()}, indent=2)
