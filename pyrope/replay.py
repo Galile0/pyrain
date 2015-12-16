@@ -1,3 +1,5 @@
+from collections import OrderedDict
+
 import bitstring
 
 from pyrope.header import Header
@@ -167,8 +169,8 @@ class Replay:
     def get_player(self): # Todo add check that frames are actually parsed
         player = {}
         for frame in self.netstream.frames.values():
-            for value in frame.actors.values():
-                if value['actor_type'] == "TAGame.Default__PRI_TA" and value['new'] == False:
+            for name, value in frame.actors.items():
+                if "e_Default__PRI_TA" in name:
                     try:
                         player[value['data']['Engine.PlayerReplicationInfo:PlayerName']] = value['actor_id']
                     except: pass
@@ -178,26 +180,39 @@ class Replay:
         result = []
         for frame in self.netstream.frames.values():
             for actor in frame.actors.values():
-                if actor['open'] and "Engine.Pawn:PlayerReplicationInfo" in actor['data']:
-                    if actor['actor_id'] not in result and actor['data']["Engine.Pawn:PlayerReplicationInfo"][1]==playerid:
-                        result.append(actor['actor_id'])
+                try:
+                    if "Engine.Pawn:PlayerReplicationInfo" in actor['data']:
+                        if actor['actor_id'] not in result and actor['data']["Engine.Pawn:PlayerReplicationInfo"][1]==playerid:
+                            result.append(actor['actor_id'])
+                except: pass
         return result
 
     def get_player_pos(self, playerid):
         cars = self.player_to_car_ids(playerid)
-        result = {}
+        car_data = OrderedDict()
         for car in cars:
-            result[car] = {'pos': []}
+            car_data[car] = {'pos': [], 'destr': 'None'}
         for num, frame in self.netstream.frames.items():
             for actor in frame.actors.values():
-                if actor['actor_id'] in cars:
-                    # TODO Check if actor got destroyed, if so, check if ball got destroyed in the same frame
-                    # if so, add destr: demolish, else add destr: goal
+                if actor['actor_id'] in cars: # Found an Actor that is in our wanted list
+                    if str(actor['actor_id'])+'d' in frame.actors: # We found a destroyed actor, lets investigate
+                        if 'd_Ball_Default' in frame.actors: # Ball got destroyed, only reason -> goal
+                            car_data[actor['actor_id']]['destr'] = 'goal'
+                        else: # Other reason is car exploded
+                            car_data[actor['actor_id']]['destr'] = 'demolish'
                     try:
                         pos = actor['data']['TAGame.RBActor_TA:ReplicatedRBState']['pos']
-                        result[actor['actor_id']]['pos'].append(pos)
-
+                        car_data[actor['actor_id']]['pos'].append(pos)
                     except: pass
+        result = []
+        for k,v in car_data.items():
+            if not result:  # We need some kind of root
+                result.append(v['pos'])
+                continue
+            if v['destr'] == 'demolish':
+                result[-1].extend(v['pos'])  # merge pos data since car just respawned normally
+            else:
+                result.append(v['pos'])  # Car got reset because of goal, make new position set
         return result
 
     def get_ball_pos(self):

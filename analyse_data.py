@@ -24,6 +24,8 @@ stadium = [(x + 100 if x > 0 else x - 100, y + 100 if y > 0 else y - 100) for x,
 
 # avg car size ~118x82x32 ; Field Size: 10240x8192*2000?;
 # bins for ~1:1 mapping:87x100x62
+
+
 def heat_2d(coords, draw_map=True, bins=25):
     fig = plt.figure()
     col = 1
@@ -41,8 +43,8 @@ def heat_2d(coords, draw_map=True, bins=25):
     elif entrys > col:
             col = entrys
 
-    for i, actor in enumerate(coords.values()):
-        filtered = [(y, x) for x, y, z in actor if z > 15]
+    for i, coord in enumerate(coords):
+        filtered = [(y, x) for x, y, z in coord if z > 15]
         if not filter:
             continue
         if use_sq:
@@ -94,8 +96,8 @@ if __name__ == '__main__':
     # filename = "FD1D"
     # filename = "91D6"
     # filename = "3BF9"
-    # filename = "C51C0"
-    filename = "C747"
+    filename = "C51C0"
+    # filename = "C747"
     replay = Replay("testfiles/" + filename + ".replay")
     replay.netstream = pickle.load(open(filename + '/netstream.pickle', 'rb'))
     print("Please Enter PlayerID from following List:")

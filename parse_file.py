@@ -10,8 +10,8 @@ import time
 if __name__ == '__main__':
     # filename = "91D6"
     # filename = "FD1D"
-    filename = "3BF9"
-    # filename = "C51C0"
+    # filename = "3BF9"
+    filename = "C51C0"
     # filename = "C747"
     replay = Replay("testfiles/"+filename+".replay")
 
