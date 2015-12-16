@@ -5,7 +5,7 @@ from pyrope.frame import Frame, FrameParsingError
 from pyrope.netstream_property_mapping import PropertyMapper
 from pyrope.utils import reverse_bytewise
 import sys
-import time
+
 '''
 Serialization Structure for Frame as follows:
 {
@@ -19,11 +19,7 @@ Serialization Structure for Frame as follows:
                                 new: boolean,
                                 open: boolean,
                                 startpos: int,
-                                data: Array[{
-                                             property_id: int,
-                                             property_name: str,
-                                             property_value: ArrayOfDifferentDataTypes
-                                            }]
+                                data: Array[{property_name: property_value}]
                                 }
                     }
            }
@@ -38,7 +34,7 @@ class NetstreamParsingError(Exception):
 class Netstream:
     def __init__(self, netstream):
         self._netstream = reverse_bytewise(netstream)
-        self.frames = None
+        self.frames = OrderedDict()
         self._toolbar_width = 50
 
     def parse_frames(self, framenum, objects, netcache):
@@ -80,7 +76,7 @@ class Netstream:
 
     def to_json(self, skip_empty=True):
         def nonempty(framedict):
-            frames = {}
+            frames = OrderedDict()
             for k, v in framedict:
                 if v.actors:
                     frames[k] = v.__dict__
