@@ -18,7 +18,7 @@ if __name__ == '__main__':
     print("Please select PlayerID from following List:")
     pprint.pprint(analyser.get_player())
     # player_id = int(input("Enter ID:"))
-    player_id = 10
+    player_id = 17
     player_pos = analyser.get_player_pos(player_id, sep=False)
     # ball_pos = replay.get_ball_pos()
     plots = []
@@ -28,4 +28,4 @@ if __name__ == '__main__':
     else:
         # graph_2d(player_pos)
         heat_2d(player_pos, hexbin=True)
-        heat_2d(player_pos, hexbin=False)
+        # heat_2d(player_pos, hexbin=False)

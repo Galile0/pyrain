@@ -59,17 +59,20 @@ def heat_2d(coords, draw_map=True, bins=(5, 4), hexbin=False):
             extent = [yedges[0], yedges[-1], xedges[-1], xedges[0]]
             my_cmap = copy.copy(plt.cm.get_cmap('jet')) # copy the default cmap
             my_cmap.set_bad((0, 0, 1))
-            ax.imshow(heatmap, extent=extent, aspect=1.206, norm=LogNorm())  # Draw heatmap
+            cax = ax.imshow(heatmap, extent=extent, aspect=1.206, norm=LogNorm(), cmap=my_cmap)  # Draw heatmap
+            fig.colorbar(cax)
             # ax.hist2d(x, y, bins=(26, 20), normed=LogNorm, range=[(-4596,4596),(-5520,5520)])
             # ax.set_aspect(1.206)
         else:
             x.extend([-4596, 4596, 4596, -4596])
             y.extend([5520, 5520, -5520, -5520])
-            ax.hexbin(x, y, cmap=plt.cm.jet, gridsize=(13, 10), bins='log')
+            cax = ax.hexbin(x, y, cmap=plt.cm.jet, gridsize=(13, 10), norm=LogNorm()) #oder bins='log'?
             ax.set_aspect(1.206)
+            fig.colorbar(cax)
         if draw_map:
             ax.plot(*zip(*stadium), c='r')
         # ax.axis('off')
+
     print("OVERALL POINTS", all_data)
     # fig.subplots_adjust(hspace=0.05, wspace=0.05, right=0.995, left=0.005, top=1, bottom=0)
     plt.show()
