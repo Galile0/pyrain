@@ -1,3 +1,5 @@
+import copy
+
 from matplotlib.colors import LogNorm
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
@@ -55,7 +57,9 @@ def heat_2d(coords, draw_map=True, bins=(5, 4), hexbin=False):
         if not hexbin:
             heatmap, xedges, yedges = np.histogram2d(y, x, bins=(26, 20), range=[(-5520, 5520), (-4596, 4596)])
             extent = [yedges[0], yedges[-1], xedges[-1], xedges[0]]
-            ax.imshow(heatmap, extent=extent, aspect=1.206, interpolation='none', norm=LogNorm())  # Draw heatmap
+            my_cmap = copy.copy(plt.cm.get_cmap('jet')) # copy the default cmap
+            my_cmap.set_bad((0, 0, 0))
+            ax.imshow(heatmap, extent=extent, aspect=1.206, interpolation='nearest', norm=LogNorm())  # Draw heatmap
             # ax.hist2d(x, y, bins=(26, 20), normed=LogNorm, range=[(-4596,4596),(-5520,5520)])
             # ax.set_aspect(1.206)
         else:
