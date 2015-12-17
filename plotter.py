@@ -1,3 +1,4 @@
+from matplotlib.colors import LogNorm
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 import numpy as np
@@ -17,8 +18,12 @@ stadium = [(x + 100 if x > 0 else x - 100, y + 100 if y > 0 else y - 100) for x,
             (3685, 4353), (3574, 4464), (3453, 4585), (3342, 4695), (3232, 4805), (3108, 4918), (2981, 5001),
             (2906, 5036), (2842, 5060), (2763, 5081), (2646, 5097)]]  # TODO Hardcode stadium size extension
 
+# avg car size ~118x82x32 ; Field Size: 10240x8192*2000?;
+# -5120 - 5120; -4096,4096; 19, 2000
+# bins for ~1:1 mapping:87x100x62
 
-def heat_2d(coords, draw_map=True, bins=(10, 8)):
+
+def heat_2d(coords, draw_map=True, bins=(5, 4), hexbin=False):
     fig = plt.figure()
     col = 1
     row = 1
@@ -35,30 +40,35 @@ def heat_2d(coords, draw_map=True, bins=(10, 8)):
             col = entrys
     all_data = 0
     for i, coord in enumerate(coords):
-        filtered = [(y, x) for x, y, z in coord if z > 15]
+        x = [x for x, y, z in coord if z > 15 and -5120 <= y <= 5120 and -4096 <= x <= 4096]
+        y = [y for x, y, z in coord if z > 15 and -5120 <= y <= 5120 and -4096 <= x <= 4096]
         if not filter:
             continue
         if use_sq:
             ax = plt.subplot(sq*100+sq*10+1+i)
         else:
             ax = plt.subplot(row*100+col*10+1+i)
-        all_data += len(filtered)
-        print("Building Heatmap %d with %d Data Points" % (i, len(filtered)))
-        plt.xlim((4477, -4477))
-        plt.ylim((5401, -5401))
-        filtered.extend([(5477, 6401), (5477, -6401),
-                        (-5477, 6401), (-5477, -6401)])  # Background Blur
-        heatmap, xedges, yedges = np.histogram2d(*zip(*filtered), bins=bins)
-        extent = [yedges[0], yedges[-1], xedges[-1], xedges[0]]
-        ax.imshow(heatmap, extent=extent, aspect=1.206)  # Draw heatmap
+        all_data += len(x)
+        print("Building Heatmap %d with %d Data Points" % (i, len(x)))
+        # plt.xlim((4477, -4477))
+        # plt.ylim((5401, -5401))
+        if not hexbin:
+            heatmap, xedges, yedges = np.histogram2d(y, x, bins=bins,range=[(-4596,4596),(-5520,5520)])
+            extent = [yedges[0], yedges[-1], xedges[-1], xedges[0]]
+            ax.imshow(heatmap.T, extent=extent, aspect=1.206,origin='lower')  # Draw heatmap
+            # ax.hist2d(x, y, bins=(26, 20), normed=LogNorm, range=[(-4596,4596),(-5520,5520)])
+            # ax.set_aspect(1.206)
+        else:
+            x.extend([-4596, 4596, 4596, -4596])
+            y.extend([5520, 5520, -5520, -5520])
+            ax.hexbin(x, y, cmap=plt.cm.jet, gridsize=(13, 10), bins='log')
+            ax.set_aspect(1.206)
         if draw_map:
             ax.plot(*zip(*stadium), c='r')
-        ax.axis('off')
-    # plt.tight_layout(rect=[0,0,1,1])
-    print("OVERALL POINTS" ,all_data)
-    fig.subplots_adjust(hspace=0.05, wspace=0.05, right=0.995, left=0.005, top=1, bottom=0)
+        # ax.axis('off')
+    print("OVERALL POINTS", all_data)
+    # fig.subplots_adjust(hspace=0.05, wspace=0.05, right=0.995, left=0.005, top=1, bottom=0)
     plt.show()
-
 
 def graph_2d(coords):
     for i, actor in enumerate(coords.values()):

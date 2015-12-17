@@ -10,8 +10,6 @@ cloud = False
 # filename = "C747"
 filename = "0FCD"
 
-# avg car size ~118x82x32 ; Field Size: 10240x8192*2000?;
-# bins for ~1:1 mapping:87x100x62
 
 if __name__ == '__main__':
     replay = pickle.load(open(filename + '/replay.pickle', 'rb'))
@@ -21,7 +19,7 @@ if __name__ == '__main__':
     pprint.pprint(analyser.get_player())
     # player_id = int(input("Enter ID:"))
     player_id = 10
-    player_pos = analyser.get_player_pos(player_id, sep=True)
+    player_pos = analyser.get_player_pos(player_id, sep=False)
     # ball_pos = replay.get_ball_pos()
     plots = []
     if cloud:
@@ -29,4 +27,5 @@ if __name__ == '__main__':
         pass
     else:
         # graph_2d(player_pos)
-        heat_2d(player_pos)
+        heat_2d(player_pos, hexbin=True)
+        heat_2d(player_pos, hexbin=False)
