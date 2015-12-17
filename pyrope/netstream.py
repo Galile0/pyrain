@@ -65,15 +65,6 @@ class Netstream:
             raise NetstreamParsingError("There seems to be meaningful data left in the Netstream", remaining.hex)
         return self.frames
 
-    def get_movement(self, actor=None):
-        if actor:
-            pass
-        else:
-            pass
-
-    def get_actor_list(self):
-        return self.frames[0].actor_appeared
-
     def to_json(self, skip_empty=True):
         def nonempty(framedict):
             frames = OrderedDict()

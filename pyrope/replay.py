@@ -1,5 +1,3 @@
-from collections import OrderedDict
-
 import bitstring
 
 from pyrope.header import Header
@@ -154,102 +152,6 @@ class Replay:
                 else:
                     next_cache_index += 1
         return cachelist[-1]
-
-    def get_pos_vector(self):
-        if self.netstream.frames:
-            self.netstream.get_pos()
-        else:
-            raise AttributeError("Frames not yet parsed")
-
-    def get_actor_list(self):
-        if self.netstream.frames:
-            return self.netstream.get_actor_list()
-        else:
-            raise AttributeError("Frames not yet parsed")
-
-    def get_player(self):  # Todo add check that frames are actually parsed
-        player = {}
-        for frame in self.netstream.frames.values():
-            for name, value in frame.actors.items():
-                if "e_Default__PRI_TA" in name:
-                    try:
-                        player[value['data']['Engine.PlayerReplicationInfo:PlayerName']] = value['actor_id']
-                    except:
-                        pass
-        return player
-
-    def player_to_car_ids(self, playerid):
-        result = []
-        for i, frame in self.netstream.frames.items():
-            for actor in frame.actors.values():
-                try:
-                    if "Engine.Pawn:PlayerReplicationInfo" in actor['data']:
-                        if actor['actor_id'] not in result and actor['data']["Engine.Pawn:PlayerReplicationInfo"][
-                            1] == playerid:
-                            result.append(actor['actor_id'])
-                except:
-                    pass
-        return result
-
-    def get_player_pos(self, playerid, sep=False):
-        current_car = -1
-        car_actors = []
-        frame_left = max(self.netstream.frames, key=int)  # Assume player left never, or after last frame
-        player_spawned = False
-        frame_entered = 0
-        for i, frame in self.netstream.frames.items():
-            found_pos = False
-            for actor in frame.actors.values():
-                try:
-                    if actor['data']["Engine.Pawn:PlayerReplicationInfo"][1] == playerid:
-                        current_car = actor['actor_id']
-                except:
-                    pass
-                if actor['actor_id'] == current_car:
-                    try:
-                        pos = actor['data']['TAGame.RBActor_TA:ReplicatedRBState']['pos']
-                        car_actors.append(pos)
-                        found_pos = True
-                        if not player_spawned:
-                            player_spawned = True
-                            frame_entered = i
-                    except KeyError:
-                        pass
-            if not found_pos and player_spawned:
-                car_actors.append(car_actors[-1])
-            try:
-                if frame.actors[str(playerid) + 'e_Default__PRI_TA']\
-                        ['data']['Engine.PlayerReplicationInfo:Team'][1] == -1:
-                    # Player got assigned team -1 that means he left the game early
-                    frame_left = i
-                    break
-            except KeyError:
-                pass
-        result = []
-        if sep:
-            slice_frames = [v['frame'] - frame_entered for v in self.header.parsed['Goals'] if
-                            frame_entered <= v['frame'] <= frame_left]
-            slice_frames.append(frame_left - frame_entered)
-            lastframe = 0
-            for framenum in slice_frames:
-                result.append(car_actors[lastframe:framenum])
-                lastframe = framenum
-        else:
-            result.append(car_actors[:-1])
-        return result
-
-    def get_ball_pos(self):
-        result = {'x': [], 'y': [], 'z': []}
-        for num, frame in self.netstream.frames.items():
-            for actor in frame.actors.values():
-                if "Ball_Default" in actor['actor_type']:
-                    try:
-                        result['x'].append(actor['data']['TAGame.RBActor_TA:ReplicatedRBState']['pos'][0])
-                        result['y'].append(actor['data']['TAGame.RBActor_TA:ReplicatedRBState']['pos'][1])
-                        result['z'].append(actor['data']['TAGame.RBActor_TA:ReplicatedRBState']['pos'][2])
-                    except:
-                        pass
-        return result
 
     def __getstate__(self):
         d = dict(self.__dict__)
