@@ -5,6 +5,7 @@ import bitstring
 from pyrope.header import Header
 from pyrope.netstream import Netstream
 from pyrope.utils import read_string, UINT_32, FLOAT_LE_32, ParsingError
+
 '''
 Assumed File Structure:
 4 Bytes size of header starting after CRC
@@ -17,9 +18,9 @@ Meta Data
 
 
 class Replay:
-
-    def __init__(self, path):
-        self.replay = bitstring.ConstBitStream(filename=path)
+    def __init__(self, path=None):
+        if path:
+            self.replay = bitstring.ConstBitStream(filename=path)
         self.header = None
         self.netstream_raw = None
         self.netstream = None
@@ -40,11 +41,11 @@ class Replay:
         header_size = self.replay.read(UINT_32)  # Read header size and discard
         self.crc = self.replay.read('hex:32')
         self.version = str(self.replay.read(UINT_32)) + '.' + str(self.replay.read(UINT_32))
-        self.header = Header(self.replay.read((header_size-8)*8))
+        self.header = Header(self.replay.read((header_size - 8) * 8))
         self.replay.read('bytes:8')  # Read and discard additional size info
         self.maps = self._decode_maps(self.replay)
         self.keyframes = self._decode_keyframes(self.replay)
-        self.netstream = Netstream(self.replay.read(self.replay.read(UINT_32)*8))
+        self.netstream = Netstream(self.replay.read(self.replay.read(UINT_32) * 8))
         self.dbg_log = self._decode_dbg_log(self.replay)
         self.goal_frames = self._decode_goalframes(self.replay)
         self.packages = self._decode_packages(self.replay)
@@ -52,7 +53,7 @@ class Replay:
         self.names = self._decode_names(self.replay)
         self.class_index_map = self._decode_class_index_map(self.replay)
         self.netcache = self._decode_class_net_cache(self.replay, self.class_index_map)
-        if self.replay.bytepos != (self.replay.length/8):
+        if self.replay.bytepos != (self.replay.length / 8):
             raise ParsingError("Did not reach EOF while gathering Meta Data")
         if parse_header or parse_netstream:  # Netstream needs header for frame amount
             self.header.parse()
@@ -144,7 +145,7 @@ class Replay:
             cachelist.append({class_index_map[class_id]: data})
         cachelist.reverse()  # Build netcache tree by "furling" our netcaches from behind
         for index, item in enumerate(cachelist[:-1]):  # Worst case should be O(n^2)
-            next_cache_index = index+1
+            next_cache_index = index + 1
             while True:  # iterate until we found a cache with our parent id
                 nextitem = list(cachelist[next_cache_index].values())[0]
                 if nextitem['cache_id'] == list(item.values())[0]['parent']:
@@ -166,63 +167,75 @@ class Replay:
         else:
             raise AttributeError("Frames not yet parsed")
 
-    def get_player(self): # Todo add check that frames are actually parsed
+    def get_player(self):  # Todo add check that frames are actually parsed
         player = {}
         for frame in self.netstream.frames.values():
             for name, value in frame.actors.items():
                 if "e_Default__PRI_TA" in name:
                     try:
                         player[value['data']['Engine.PlayerReplicationInfo:PlayerName']] = value['actor_id']
-                    except: pass
+                    except:
+                        pass
         return player
 
     def player_to_car_ids(self, playerid):
         result = []
-        for frame in self.netstream.frames.values():
+        for i, frame in self.netstream.frames.items():
             for actor in frame.actors.values():
                 try:
                     if "Engine.Pawn:PlayerReplicationInfo" in actor['data']:
-                        if actor['actor_id'] not in result and actor['data']["Engine.Pawn:PlayerReplicationInfo"][1]==playerid:
+                        if actor['actor_id'] not in result and actor['data']["Engine.Pawn:PlayerReplicationInfo"][
+                            1] == playerid:
                             result.append(actor['actor_id'])
-                except: pass
+                except:
+                    pass
         return result
 
     def get_player_pos(self, playerid, sep=False):
-        cars = self.player_to_car_ids(playerid)
-        car_data = OrderedDict()
-        for car in cars:
-            car_data[car] = {'pos': [], 'destr': None, 'spawned': False}
-        for num, frame in self.netstream.frames.items():
-            active_cars = [k for k, v in car_data.items() if not v['destr']]
+        current_car = -1
+        car_actors = []
+        frame_left = max(self.netstream.frames, key=int)  # Assume player left never, or after last frame
+        player_spawned = False
+        frame_entered = 0
+        for i, frame in self.netstream.frames.items():
+            found_pos = False
             for actor in frame.actors.values():
-                actor_id = actor['actor_id']
-                if actor_id in active_cars and 'Car' in actor['actor_type']:  # Found actor of car type with id
-                    if any(str(actor_id)+'d' in s for s in frame.actors):  # actor was destr this frame
-                        if any('d_Ball_Default' in s for s in frame.actors):  # ball also was destroyed
-                            car_data[actor_id]['destr'] = 'goal'  # This means the reason is a goal
-                        else:  # Only other reason is left or demolished
-                            car_data[actor_id]['destr'] = 'demolish'
+                try:
+                    if actor['data']["Engine.Pawn:PlayerReplicationInfo"][1] == playerid:
+                        current_car = actor['actor_id']
+                except:
+                    pass
+                if actor['actor_id'] == current_car:
                     try:
                         pos = actor['data']['TAGame.RBActor_TA:ReplicatedRBState']['pos']
-                        car_data[actor_id]['spawned'] = True
-                        active_cars.remove(actor_id)  # We got a position this frame, no need to look further
-                        car_data[actor_id]['pos'].append(pos)
-                    except: pass
-            for car in active_cars: # Whats left is what we found no Position update for and whats not destroyed
-                if car_data[car]['spawned'] and not car_data[car]['destr']:
-                    car_data[car]['pos'].append(car_data[car]['pos'][-1])
+                        car_actors.append(pos)
+                        found_pos = True
+                        if not player_spawned:
+                            player_spawned = True
+                            frame_entered = i
+                    except KeyError:
+                        pass
+            if not found_pos and player_spawned:
+                car_actors.append(car_actors[-1])
+            try:
+                if frame.actors[str(playerid) + 'e_Default__PRI_TA']\
+                        ['data']['Engine.PlayerReplicationInfo:Team'][1] == -1:
+                    # Player got assigned team -1 that means he left the game early
+                    frame_left = i
+                    break
+            except KeyError:
+                pass
         result = []
         if sep:
-            for v in car_data.values():
-                if not result:  # We need some kind of root
-                    result.append(v['pos'])
-                    continue
-                if v['destr'] == 'demolish':
-                    result[-1].extend(v['pos'])  # merge pos data since car just respawned normally
-                else:
-                    result.append(v['pos'])  # Car got reset because of goal, make new position set
-        else:  # If no seperate data for each goal, just throw all positions together
-            result.append([pos for v in car_data.values() for pos in v['pos']])
+            slice_frames = [v['frame'] - frame_entered for v in self.header.parsed['Goals'] if
+                            frame_entered <= v['frame'] <= frame_left]
+            slice_frames.append(frame_left - frame_entered)
+            lastframe = 0
+            for framenum in slice_frames:
+                result.append(car_actors[lastframe:framenum])
+                lastframe = framenum
+        else:
+            result.append(car_actors[:-1])
         return result
 
     def get_ball_pos(self):
@@ -234,5 +247,14 @@ class Replay:
                         result['x'].append(actor['data']['TAGame.RBActor_TA:ReplicatedRBState']['pos'][0])
                         result['y'].append(actor['data']['TAGame.RBActor_TA:ReplicatedRBState']['pos'][1])
                         result['z'].append(actor['data']['TAGame.RBActor_TA:ReplicatedRBState']['pos'][2])
-                    except: pass
+                    except:
+                        pass
         return result
+
+    def __getstate__(self):
+        d = dict(self.__dict__)
+        del d['replay']
+        return d
+
+    def __setstate__(self, d):
+        self.__dict__.update(d)

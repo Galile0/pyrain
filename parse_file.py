@@ -13,6 +13,7 @@ if __name__ == '__main__':
     # filename = "3BF9"
     filename = "C51C0"
     # filename = "C747"
+    # filename = "0FCD"
     replay = Replay("testfiles/"+filename+".replay")
 
     try:
@@ -25,7 +26,7 @@ if __name__ == '__main__':
         for arg in e.args:
             pprint.pprint(arg)
     os.makedirs(filename, exist_ok=True)
-    pickle.dump(replay.netstream, open(filename+'/netstream.pickle', 'wb'))
+    pickle.dump(replay, open(filename+'/replay.pickle', 'wb'))
     with open(filename+'/keyframes.json', 'w', encoding='utf-8') as outfile:
         json.dump(replay.keyframes, outfile, indent=2, ensure_ascii=False)
     with open(filename+'/header.json', 'w', encoding='utf-8') as outfile:
