@@ -50,12 +50,12 @@ def heat_2d(coords, draw_map=True, bins=(5, 4), hexbin=False):
             ax = plt.subplot(row*100+col*10+1+i)
         all_data += len(x)
         print("Building Heatmap %d with %d Data Points" % (i, len(x)))
-        # plt.xlim((4477, -4477))
-        # plt.ylim((5401, -5401))
+        plt.xlim((4596, -4596))
+        plt.ylim((5520, -5520))
         if not hexbin:
-            heatmap, xedges, yedges = np.histogram2d(y, x, bins=bins,range=[(-4596,4596),(-5520,5520)])
+            heatmap, xedges, yedges = np.histogram2d(y, x, bins=(26, 20), range=[(-5520, 5520), (-4596, 4596)])
             extent = [yedges[0], yedges[-1], xedges[-1], xedges[0]]
-            ax.imshow(heatmap.T, extent=extent, aspect=1.206,origin='lower')  # Draw heatmap
+            ax.imshow(heatmap, extent=extent, aspect=1.206, interpolation='none', norm=LogNorm())  # Draw heatmap
             # ax.hist2d(x, y, bins=(26, 20), normed=LogNorm, range=[(-4596,4596),(-5520,5520)])
             # ax.set_aspect(1.206)
         else:
