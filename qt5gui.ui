@@ -20,11 +20,17 @@
    <string notr="true">PyRain - Replay Analysis Interface</string>
   </property>
   <widget class="QWidget" name="centralwidget">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
    <property name="sizePolicy">
     <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
      <horstretch>0</horstretch>
      <verstretch>0</verstretch>
     </sizepolicy>
+   </property>
+   <property name="autoFillBackground">
+    <bool>false</bool>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
     <property name="topMargin">
@@ -145,7 +151,7 @@
               <property name="editable">
                <bool>false</bool>
               </property>
-              <property name="currentText" stdset="0">
+              <property name="currentText">
                <string notr="true">Hexbin</string>
               </property>
               <property name="currentIndex">

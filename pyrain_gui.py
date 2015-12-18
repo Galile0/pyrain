@@ -1,10 +1,23 @@
+import pickle
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QApplication
 import sys
+from os import path
+from pyrope.replay import Replay
 
 
-class PyRainGui(object):
+# class ProgressModal(QtWidgets.QProgressDialog):
+#
+#     def __init__(self):
+#         super().__init__(labelText="Parsing Replay")
+#         self.resize(402, 59)
+#         self.setWindowTitle("Parsing Replay")
+
+class PyRainGui(QtWidgets.QMainWindow):
+
     def __init__(self):
+        super().__init__()
+        self.replay = None
+        self.centralwidget = None
         self.mpl_widget = None
         self.cmb_player = None
         self.cmb_style = None
@@ -19,33 +32,33 @@ class PyRainGui(object):
         self.cmb_slicing = None
         self.btn_calc = None
 
-    def setup_ui(self, gui_main):
-        gui_main.resize(868, 552)
+    def setup_ui(self):
+        self.resize(868, 552)
         size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred,
                                             QtWidgets.QSizePolicy.Preferred)
         size_policy.setHorizontalStretch(0)
         size_policy.setVerticalStretch(0)
-        size_policy.setHeightForWidth(gui_main.sizePolicy().hasHeightForWidth())
-        gui_main.setSizePolicy(size_policy)
-        gui_main.setWindowTitle('PyRain - Replay Analysis Interface')
+        size_policy.setHeightForWidth(self.sizePolicy().hasHeightForWidth())
+        self.setSizePolicy(size_policy)
+        self.setWindowTitle('PyRain - Replay Analysis Interface')
 
-        centralwidget = QtWidgets.QWidget(gui_main)
+        self.centralwidget = QtWidgets.QWidget(self)
         size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding,
                                             QtWidgets.QSizePolicy.MinimumExpanding)
         size_policy.setHorizontalStretch(0)
         size_policy.setVerticalStretch(0)
-        size_policy.setHeightForWidth(centralwidget.sizePolicy().hasHeightForWidth())
-        centralwidget.setSizePolicy(size_policy)
+        size_policy.setHeightForWidth(self.centralwidget.sizePolicy().hasHeightForWidth())
+        self.centralwidget.setSizePolicy(size_policy)
 
-        vl_centralw = QtWidgets.QVBoxLayout(centralwidget)
+        vl_centralw = QtWidgets.QVBoxLayout(self.centralwidget)
         vl_centralw.setContentsMargins(-1, 9, -1, -1)
 
         hzl_1 = QtWidgets.QHBoxLayout()  # Main Container (Controls | Figure)
 
-        box_controls = self.setup_controls(centralwidget)
+        box_controls = self.setup_controls()
         hzl_1.addWidget(box_controls)
 
-        self.mpl_widget = QtWidgets.QWidget(centralwidget)
+        self.mpl_widget = QtWidgets.QWidget(self.centralwidget)
         size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding,
                                             QtWidgets.QSizePolicy.MinimumExpanding)
         size_policy.setHorizontalStretch(0)
@@ -56,7 +69,7 @@ class PyRainGui(object):
         hzl_1.addWidget(self.mpl_widget)
         vl_centralw.addLayout(hzl_1)
 
-        self.txt_log = QtWidgets.QPlainTextEdit(centralwidget)
+        self.txt_log = QtWidgets.QPlainTextEdit(self.centralwidget)
         size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding,
                                             QtWidgets.QSizePolicy.Minimum)
         size_policy.setHorizontalStretch(0)
@@ -66,17 +79,15 @@ class PyRainGui(object):
         self.txt_log.setMaximumSize(QtCore.QSize(16777215, 100))
         vl_centralw.addWidget(self.txt_log)
 
-        gui_main.setCentralWidget(centralwidget)
+        self.setCentralWidget(self.centralwidget)
+        self.centralwidget.setEnabled(False)
 
-        self.setup_menu(gui_main)
-        self.setup_toolbar(gui_main)
+        self.setup_menu()
+        self.setup_toolbar()
         self.setup_signals()
 
-        self.cmb_style.setCurrentIndex(0)
-        QtCore.QMetaObject.connectSlotsByName(gui_main)
-
-    def setup_toolbar(self, gui_main):
-        toolbar = QtWidgets.QToolBar(gui_main)
+    def setup_toolbar(self):
+        toolbar = QtWidgets.QToolBar(self)
         toolbar.setStyleSheet('QToolBar{spacing:10px;}')
         toolbar.layout().setContentsMargins(7, 7, 7, 7)
 
@@ -102,27 +113,27 @@ class PyRainGui(object):
         self.btn_calc = QtWidgets.QPushButton()
         self.btn_calc.setText("Extract Data")
         toolbar.addWidget(self.btn_calc)
-        gui_main.addToolBar(QtCore.Qt.TopToolBarArea, toolbar)
+        self.addToolBar(QtCore.Qt.TopToolBarArea, toolbar)
 
-    def setup_menu(self, gui_main):
-        menubar = QtWidgets.QMenuBar(gui_main)
+    def setup_menu(self):
+        menubar = QtWidgets.QMenuBar(self)
         menubar.setGeometry(QtCore.QRect(0, 0, 868, 21))
         menu_file = QtWidgets.QMenu(menubar)
         menu_file.setTitle('File')
         menubar.addAction(menu_file.menuAction())
 
-        self.action_open = QtWidgets.QAction(gui_main)
+        self.action_open = QtWidgets.QAction(self)
         self.action_open.setText('Open...')
         menu_file.addAction(self.action_open)
 
-        self.action_exit = QtWidgets.QAction(gui_main)
+        self.action_exit = QtWidgets.QAction(self)
         self.action_exit.setText('Exit')
         menu_file.addAction(self.action_exit)
 
-        gui_main.setMenuBar(menubar)
+        self.setMenuBar(menubar)
 
-    def setup_controls(self, centralwidget):
-        box_controls = QtWidgets.QGroupBox(centralwidget)
+    def setup_controls(self):
+        box_controls = QtWidgets.QGroupBox(self.centralwidget)
         size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Ignored)
         size_policy.setHorizontalStretch(0)
         size_policy.setVerticalStretch(1)
@@ -194,6 +205,7 @@ class PyRainGui(object):
         self.cmb_style.setAutoFillBackground(False)
         self.cmb_style.setEditable(False)
         self.cmb_style.insertItems(0, ['Hexbin', 'Histogram - Blur', 'Histogram - Clear'])
+        self.cmb_style.setCurrentIndex(0)
         grl_settings.addWidget(self.cmb_style, 0, 1, 1, 3)
 
         self.chk_logscale = QtWidgets.QCheckBox(frm_settings)
@@ -211,15 +223,31 @@ class PyRainGui(object):
         return frm_settings
 
     def setup_signals(self):
-        self.btn_saveimage.clicked.connect(self.doshit)
+        self.action_open.triggered.connect(self.show_open_file)
+        self.action_exit.triggered.connect(self.close)
 
-    def doshit(self):
-        print('done shit')
+    def show_open_file(self):
+        home = path.expanduser('~')
+        # replay_folder = home+'\\My Games\\\Rocket League\\TAGame\\Demos'
+        replay_folder = path.dirname(path.realpath(__file__))  # TODO DEV ONLY
+        if not path.isdir(replay_folder):
+            replay_folder = home
+        ext = 'Replay (*.pyrope *.replay)'
+        fname = QtWidgets.QFileDialog.getOpenFileName(self, 'Load Replay', replay_folder, ext)
+        if fname[0]:
+            ext = fname[0].split('.')[-1]
+            if ext == 'replay':
+                self.replay = Replay(path=fname[0])
+                self.show_progress()
+            elif ext == '.pyrope':
+                self.replay = pickle.load(open(fname[0], 'rb'))
 
-
-app = QApplication(sys.argv)
-window = QtWidgets.QMainWindow()
+    def show_progress(self):
+        progress = QtWidgets.QProgressDialog(self)
+        progress.setCancelButton('Mission Abort!')
+        progress.setWindowTitle('Parsing Replay')
+app = QtWidgets.QApplication(sys.argv)
 ui = PyRainGui()
-ui.setup_ui(window)
-window.show()
+ui.setup_ui()
+ui.show()
 sys.exit(app.exec_())
