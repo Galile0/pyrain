@@ -47,9 +47,14 @@ class Replay:
             self._parse_meta()
             self._parse_header()
 
-    def parse_netstream(self):
-        self._netstream_raw = reverse_bytewise(self._netstream_raw)
-        self.netstream = self.parse_frames(self.header['NumFrames'], self.objects, self.netcache)
+    def parse_netstream(self, qout=None, ev=None):
+        try:
+            self._netstream_raw = reverse_bytewise(self._netstream_raw)
+            self.netstream = self._parse_frames(qout, ev)
+        except Exception as e:
+            if qout:
+                qout.put('exception')
+                qout.put(e)
 
     def _parse_meta(self):
         self._replay.pos = 0  # Just reassure we are at the beginning
@@ -212,21 +217,27 @@ class Replay:
             raise HeaderParsingError("Unknown property type %s for %s" % (property_type, property_key))
         return property_key, property_value
 
-    def parse_frames(self, framenum, objects, netcache):
+    def _parse_frames(self, qout, ev_stop):
         frames = OrderedDict()
-        propertymapper = PropertyMapper(netcache)
-        for i in range(framenum):
+        propertymapper = PropertyMapper(self.netcache)
+        for i in range(self.header['NumFramess']):
+            if ev_stop and ev_stop.is_set():
+                self._netstream_raw.pos = 0  # Reset in case parsing gets restarted
+                return None
             frame = Frame()
             try:
-                frame.parse_frame(self._netstream_raw, objects, propertymapper)
+                frame.parse_frame(self._netstream_raw, self.objects, propertymapper)
             except FrameParsingError as e:
                 e.args += ({"LastFrameActors": frames[i-1].actors},)
                 raise e
             frames[i] = frame
-        remaining = self._netstream_raw.read(self._netstream_raw.length-self._netstream_raw.pos)
+            if qout:
+                qout.put(i)
+        remaining = self._netstream_raw.read(self._netstream_raw.length - self._netstream_raw.pos)
         remaining.bytealign()
         if remaining.int != 0:
             raise NetstreamParsingError("There seems to be meaningful data left in the Netstream", remaining.hex)
+        qout.put('done')
         return frames
 
     def __getstate__(self):
