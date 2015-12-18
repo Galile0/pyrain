@@ -1,15 +1,13 @@
 class Analyser:
 
     def __init__(self, replay):
+        if not replay.netstream:
+            raise TypeError("Replay has to be decoded")
         self.replay = replay
-        if not self.replay.header:
-            self.replay.parse_header()
-        if not self.replay.netstream:
-            self.replay.parse_meta()
 
     def get_player(self):  # Todo add check that frames are actually parsed
         player = {}
-        for frame in self.replay.netstream.frames.values():
+        for frame in self.replay.netstream.values():
             for name, value in frame.actors.items():
                 if "e_Default__PRI_TA" in name:
                     try:
@@ -21,10 +19,10 @@ class Analyser:
     def get_player_pos(self, playerid, sep=False):
         current_car = -1
         car_actors = []
-        frame_left = max(self.replay.netstream.frames, key=int)  # Assume player left never, or after last frame
+        frame_left = max(self.replay.netstream, key=int)  # Assume player left never, or after last frame
         player_spawned = False
         frame_entered = 0
-        for i, frame in self.replay.netstream.frames.items():
+        for i, frame in self.replay.netstream.items():
             found_pos = False
             for actor in frame.actors.values():
                 try:
@@ -67,7 +65,7 @@ class Analyser:
 
     def get_ball_pos(self):
         result = []
-        for num, frame in self.replay.netstream.frames.items():
+        for num, frame in self.replay.netstream.items():
             for actor in frame.actors.values():
                 if "Ball_Default" in actor['actor_type']:
                     try:

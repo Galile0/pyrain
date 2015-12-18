@@ -19,8 +19,8 @@ if __name__ == '__main__':
 
     print("Please select PlayerID from following List:")
     pprint.pprint(analyser.get_player())
-    # player_id = int(input("Enter ID:"))
-    player_id = 5
+    player_id = int(input("Enter ID:"))
+    # player_id = 5
     player_pos = analyser.get_player_pos(player_id, sep=False)
     # ball_pos = replay.get_ball_pos()
     plots = []

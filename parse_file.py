@@ -18,7 +18,7 @@ if __name__ == '__main__':
 
     try:
         start = time.time()
-        replay.parse_all()
+        replay.parse_netstream()
         delta = time.time() - start
         print("Shit Took:", delta)
     except (PropertyParsingError, FrameParsingError) as e:
@@ -30,6 +30,6 @@ if __name__ == '__main__':
     with open(filename+'/keyframes.json', 'w', encoding='utf-8') as outfile:
         json.dump(replay.keyframes, outfile, indent=2, ensure_ascii=False)
     with open(filename+'/header.json', 'w', encoding='utf-8') as outfile:
-        json.dump(replay.header.parsed, outfile, indent=2, ensure_ascii=False)
+        json.dump(replay.header, outfile, indent=2, ensure_ascii=False)
     with open(filename+'/netstream.json', 'w', encoding='utf-8') as outfile:
-        outfile.write(replay.netstream.to_json())
+        outfile.write(replay.netstream_to_json())
