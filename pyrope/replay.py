@@ -220,7 +220,7 @@ class Replay:
     def _parse_frames(self, qout, ev_stop):
         frames = OrderedDict()
         propertymapper = PropertyMapper(self.netcache)
-        for i in range(self.header['NumFramess']):
+        for i in range(self.header['NumFrames']):
             if ev_stop and ev_stop.is_set():
                 self._netstream_raw.pos = 0  # Reset in case parsing gets restarted
                 return None
