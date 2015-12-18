@@ -2,6 +2,10 @@ class Analyser:
 
     def __init__(self, replay):
         self.replay = replay
+        if not self.replay.header:
+            self.replay.parse_header()
+        if not self.replay.netstream:
+            self.replay.parse_meta()
 
     def get_player(self):  # Todo add check that frames are actually parsed
         player = {}

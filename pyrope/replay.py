@@ -19,6 +19,8 @@ class Replay:
     def __init__(self, path=None):
         if path:
             self.replay = bitstring.ConstBitStream(filename=path)
+        self.header_size = None
+        # self.header_raw = None
         self.header = None
         self.netstream_raw = None
         self.netstream = None
@@ -34,7 +36,7 @@ class Replay:
         self.class_index_map = None
         self.netcache = None
 
-    def parse(self, parse_header=True, parse_netstream=False):
+    def parse_meta(self):
         self.replay.pos = 0  # Just reassure we are at the beginning
         header_size = self.replay.read(UINT_32)  # Read header size and discard
         self.crc = self.replay.read('hex:32')
@@ -53,11 +55,25 @@ class Replay:
         self.netcache = self._decode_class_net_cache(self.replay, self.class_index_map)
         if self.replay.bytepos != (self.replay.length / 8):
             raise ParsingError("Did not reach EOF while gathering Meta Data")
-        if parse_header or parse_netstream:  # Netstream needs header for frame amount
-            self.header.parse()
-        if parse_netstream:
-            self.netstream.parse_frames(self.header.parsed['NumFrames'], self.objects, self.netcache)
         return True
+
+    def parse_header(self):
+        if not self.header:  # Could raise Exception
+            self.parse_meta()  # but parsing metadata is so fast that i dont care
+        # self.header = Header(self.header_raw)
+        self.header.parse()
+
+    def parse_netstream(self):
+        if not self.netstream:
+            self.parse_meta()
+        if not self.header:
+            self.parse_header()
+        self.netstream.parse_frames(self.header.parsed['NumFrames'], self.objects, self.netcache)
+
+    def parse_all(self):
+        self.parse_meta()
+        self.parse_header()
+        self.parse_netstream()
 
     def _decode_maps(self, bitstream):
         maps = []
@@ -156,6 +172,7 @@ class Replay:
     def __getstate__(self):
         d = dict(self.__dict__)
         del d['replay']
+        del d['netstream_raw']
         return d
 
     def __setstate__(self, d):

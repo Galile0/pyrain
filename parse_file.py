@@ -10,15 +10,15 @@ import time
 if __name__ == '__main__':
     # filename = "91D6"
     # filename = "FD1D"
-    # filename = "3BF9"
-    filename = "C51C0"
+    filename = "3BF9"
+    # filename = "C51C0"
     # filename = "C747"
     # filename = "0FCD"
     replay = Replay("testfiles/"+filename+".replay")
 
     try:
         start = time.time()
-        replay.parse(parse_header=True, parse_netstream=True)
+        replay.parse_all()
         delta = time.time() - start
         print("Shit Took:", delta)
     except (PropertyParsingError, FrameParsingError) as e:
