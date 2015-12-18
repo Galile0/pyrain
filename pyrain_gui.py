@@ -5,13 +5,6 @@ from os import path
 from pyrope.replay import Replay
 
 
-# class ProgressModal(QtWidgets.QProgressDialog):
-#
-#     def __init__(self):
-#         super().__init__(labelText="Parsing Replay")
-#         self.resize(402, 59)
-#         self.setWindowTitle("Parsing Replay")
-
 class PyRainGui(QtWidgets.QMainWindow):
 
     def __init__(self):
@@ -243,9 +236,24 @@ class PyRainGui(QtWidgets.QMainWindow):
                 self.replay = pickle.load(open(fname[0], 'rb'))
 
     def show_progress(self):
+        self.replay.parse_header()
+        max = self.replay.header.parsed['NumFrames']
         progress = QtWidgets.QProgressDialog(self)
-        progress.setCancelButton('Mission Abort!')
+        progress.setCancelButtonText('Mission Abort!')
         progress.setWindowTitle('Parsing Replay')
+        progress.setRange(0, max)
+        # qin = Queue()
+        # qout = Queue()
+        # thread_parser = self.replay.parse_netstream((qin, qout))
+        # progress.show()
+        # while thread_parser.isAlive():
+        #     print(qout.get())
+        #     if progress.wasCanceled():
+        #         print("wascanceled")
+        #         qin.put('stop')
+        #         break
+        # progress.close()
+
 app = QtWidgets.QApplication(sys.argv)
 ui = PyRainGui()
 ui.setup_ui()

@@ -39,12 +39,6 @@ class Netstream:
 
     def parse_frames(self, framenum, objects, netcache):
         self.frames = {}
-
-        sys.stdout.write("[%s]" % (" " * self._toolbar_width))
-        sys.stdout.flush()
-        sys.stdout.write("\b" * (self._toolbar_width+1))
-        update_bar_each = framenum//self._toolbar_width
-
         propertymapper = PropertyMapper(netcache)
         for i in range(framenum):
             frame = Frame()
@@ -54,11 +48,6 @@ class Netstream:
                 e.args += ({"LastFrameActors": self.frames[i-1].actors},)
                 raise e
             self.frames[i] = frame
-
-            if i % update_bar_each == 0:
-                sys.stdout.write("-")
-                sys.stdout.flush()
-        sys.stdout.write("\n")
         remaining = self._netstream.read(self._netstream.length-self._netstream.pos)
         remaining.bytealign()
         if remaining.int != 0:
