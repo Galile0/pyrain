@@ -1,5 +1,6 @@
 import json
 from collections import OrderedDict
+from PyQt5 import QtCore
 
 from pyrope.frame import Frame, FrameParsingError
 from pyrope.netstream_property_mapping import PropertyMapper
@@ -39,6 +40,12 @@ class Netstream:
 
     def parse_frames(self, framenum, objects, netcache):
         self.frames = {}
+
+        sys.stdout.write("[%s]" % (" " * self._toolbar_width))
+        sys.stdout.flush()
+        sys.stdout.write("\b" * (self._toolbar_width+1))
+        update_bar_each = framenum//self._toolbar_width
+
         propertymapper = PropertyMapper(netcache)
         for i in range(framenum):
             frame = Frame()
@@ -48,11 +55,16 @@ class Netstream:
                 e.args += ({"LastFrameActors": self.frames[i-1].actors},)
                 raise e
             self.frames[i] = frame
+
+            if i % update_bar_each == 0:
+                sys.stdout.write("-")
+                sys.stdout.flush()
+        sys.stdout.write("\n")
         remaining = self._netstream.read(self._netstream.length-self._netstream.pos)
         remaining.bytealign()
         if remaining.int != 0:
             raise NetstreamParsingError("There seems to be meaningful data left in the Netstream", remaining.hex)
-        return self.frames
+        return len(self.frames)
 
     def to_json(self, skip_empty=True):
         def nonempty(framedict):
@@ -64,3 +76,33 @@ class Netstream:
         if skip_empty:
             return json.dumps(self, default=lambda o: nonempty(self.frames.items()), indent=2)
         return json.dumps(self, default=lambda o: {k: v.__dict__ for k, v in self.frames.items()}, indent=2)
+
+
+class NetstreamQthread(QtCore.QThread):
+    tick = QtCore.pyqtSignal(int, name="changed")
+
+    def __init__(self, netstream, framenum, objects, netcache, parent):
+        QtCore.QThread.__init__(self, parent)
+        self._netstream = reverse_bytewise(netstream)
+        self.frames = OrderedDict()
+        self.framenum = framenum
+        self.objects = objects
+        self.netcache = netcache
+
+    def run(self):
+        self.frames = {}
+        propertymapper = PropertyMapper(self.netcache)
+        for i in range(self.framenum):
+            frame = Frame()
+            try:
+                frame.parse_frame(self._netstream, self.objects, propertymapper)
+            except FrameParsingError as e:
+                e.args += ({"LastFrameActors": self.frames[i-1].actors},)
+                raise e
+            self.frames[i] = frame
+            self.tick.emit(i)
+        remaining = self._netstream.read(self._netstream.length-self._netstream.pos)
+        remaining.bytealign()
+        if remaining.int != 0:
+            raise NetstreamParsingError("There seems to be meaningful data left in the Netstream", remaining.hex)
+        return len(self.frames)

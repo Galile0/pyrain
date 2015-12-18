@@ -1,7 +1,7 @@
 import bitstring
 
 from pyrope.header import Header
-from pyrope.netstream import Netstream
+from pyrope.netstream import Netstream, NetstreamQthread
 from pyrope.utils import read_string, UINT_32, FLOAT_LE_32, ParsingError
 
 '''
@@ -45,7 +45,8 @@ class Replay:
         self.replay.read('bytes:8')  # Read and discard additional size info
         self.maps = self._decode_maps(self.replay)
         self.keyframes = self._decode_keyframes(self.replay)
-        self.netstream = Netstream(self.replay.read(self.replay.read(UINT_32) * 8))
+        # self.netstream = Netstream(self.replay.read(self.replay.read(UINT_32) * 8))
+        self.netstream_raw = self.replay.read(self.replay.read(UINT_32) * 8)
         self.dbg_log = self._decode_dbg_log(self.replay)
         self.goal_frames = self._decode_goalframes(self.replay)
         self.packages = self._decode_packages(self.replay)
@@ -68,7 +69,20 @@ class Replay:
             self.parse_meta()
         if not self.header:
             self.parse_header()
+        self.netstream = Netstream(self.netstream_raw)
         self.netstream.parse_frames(self.header.parsed['NumFrames'], self.objects, self.netcache)
+
+    def create_thread(self, parent):
+        if not self.netstream:
+            self.parse_meta()
+        if not self.header:
+            self.parse_header()
+        self.netstream = NetstreamQthread(self.netstream_raw,
+                                          self.header.parsed['NumFrames'],
+                                          self.objects,
+                                          self.netcache,
+                                          parent)
+        return self.netstream
 
     def parse_all(self):
         self.parse_meta()

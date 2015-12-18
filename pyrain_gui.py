@@ -242,17 +242,9 @@ class PyRainGui(QtWidgets.QMainWindow):
         progress.setCancelButtonText('Mission Abort!')
         progress.setWindowTitle('Parsing Replay')
         progress.setRange(0, max)
-        # qin = Queue()
-        # qout = Queue()
-        # thread_parser = self.replay.parse_netstream((qin, qout))
-        # progress.show()
-        # while thread_parser.isAlive():
-        #     print(qout.get())
-        #     if progress.wasCanceled():
-        #         print("wascanceled")
-        #         qin.put('stop')
-        #         break
-        # progress.close()
+        netstream_thread = self.replay.createThread(self)
+        # progress.connect(netstream_thread, SIGNAL('tick'))
+        netstream_thread.tick.connect(progress.setProgress)
 
 app = QtWidgets.QApplication(sys.argv)
 ui = PyRainGui()
