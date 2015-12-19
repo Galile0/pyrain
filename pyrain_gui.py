@@ -9,6 +9,8 @@ import sys
 from os import path
 from queue import Queue
 from threading import Thread, Event
+
+from pyrope.analyser import Analyser
 from pyrope.replay import Replay
 from time import sleep, time, strftime
 
@@ -341,6 +343,9 @@ class PyRainGui(QtWidgets.QMainWindow):
 
     def netstream_loaded(self):
         self.txt_log.appendPlainText('Netstream Parsed. No Errors found')
+        self.analyser = Analyser(self.replay)
+        self.cmb_player.clear()
+        self.cmb_player.insertItems(0, [k for k in self.analyser.get_player().keys()])
 
 class ProgressDialog(QtWidgets.QDialog):
 
