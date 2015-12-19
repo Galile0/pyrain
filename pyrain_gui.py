@@ -46,23 +46,19 @@ class PyRainGui(QtWidgets.QMainWindow):
                                             QtWidgets.QSizePolicy.MinimumExpanding)
         size_policy.setHeightForWidth(self.centralwidget.sizePolicy().hasHeightForWidth())
         self.centralwidget.setSizePolicy(size_policy)
-
         vl_centralw = QtWidgets.QVBoxLayout(self.centralwidget)
         vl_centralw.setContentsMargins(-1, 9, -1, -1)
 
-        hzl_1 = QtWidgets.QHBoxLayout()  # Main Container (Controls | Figure)
+        tabview = QtWidgets.QTabWidget(self.centralwidget)
+        tabview.setTabPosition(QtWidgets.QTabWidget.North)
 
-        box_controls = self.setup_controls()
-        hzl_1.addWidget(box_controls)
+        metaview = QtWidgets.QWidget()
+        tabview.addTab(metaview, "MetaData")
+        self.setup_metaview(metaview)
 
-        self.mpl_widget = QtWidgets.QWidget(self.centralwidget)
-        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding,
-                                            QtWidgets.QSizePolicy.MinimumExpanding)
-        size_policy.setHeightForWidth(self.mpl_widget.sizePolicy().hasHeightForWidth())
-        self.mpl_widget.setSizePolicy(size_policy)
-        self.mpl_widget.setMinimumSize(QtCore.QSize(356, 0))
-        hzl_1.addWidget(self.mpl_widget)
-        vl_centralw.addLayout(hzl_1)
+        heatmapview = QtWidgets.QWidget()
+        tabview.addTab(heatmapview, "Heatmaps")
+        self.setup_heatmapview(heatmapview)
 
         self.txt_log = QtWidgets.QPlainTextEdit(self.centralwidget)
         size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding,
@@ -70,6 +66,8 @@ class PyRainGui(QtWidgets.QMainWindow):
         size_policy.setHeightForWidth(self.txt_log.sizePolicy().hasHeightForWidth())
         self.txt_log.setSizePolicy(size_policy)
         self.txt_log.setMaximumSize(QtCore.QSize(16777215, 100))
+
+        vl_centralw.addWidget(tabview)
         vl_centralw.addWidget(self.txt_log)
 
         self.setCentralWidget(self.centralwidget)
@@ -78,6 +76,40 @@ class PyRainGui(QtWidgets.QMainWindow):
         self.setup_menu()
         self.setup_toolbar()
         self.setup_signals()
+
+    def setup_metaview(self, tab):
+        metaview_grid = QtWidgets.QGridLayout(tab)
+
+        self.lst_meta = QtWidgets.QListView(tab)
+        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Expanding)
+        size_policy.setVerticalStretch(1)
+        size_policy.setHeightForWidth(self.lst_meta.sizePolicy().hasHeightForWidth())
+        self.lst_meta.setSizePolicy(size_policy)
+        self.lst_meta.setMinimumSize(QtCore.QSize(0, 300))
+        self.lst_meta.setMaximumSize(QtCore.QSize(175, 400))
+        metaview_grid.addWidget(self.lst_meta, 0, 1, 1, 1)
+
+        spacer = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        metaview_grid.addItem(spacer, 1, 1, 1, 1)
+
+        self.txt_meta = QtWidgets.QPlainTextEdit(tab)
+        metaview_grid.addWidget(self.txt_meta, 0, 2, 2, 1)
+
+    def setup_heatmapview(self, tab):
+        hzl_1 = QtWidgets.QHBoxLayout(tab)  # Main Container (Controls | Figure)
+
+        # CONTROLS
+        box_controls = self.setup_heatmap_controls()
+        hzl_1.addWidget(box_controls)
+
+        # PLOTTING AREA
+        self.mpl_widget = QtWidgets.QWidget(self.centralwidget)
+        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding,
+                                            QtWidgets.QSizePolicy.MinimumExpanding)
+        size_policy.setHeightForWidth(self.mpl_widget.sizePolicy().hasHeightForWidth())
+        self.mpl_widget.setSizePolicy(size_policy)
+        self.mpl_widget.setMinimumSize(QtCore.QSize(356, 0))
+        hzl_1.addWidget(self.mpl_widget)
 
     def setup_toolbar(self):
         toolbar = QtWidgets.QToolBar(self)
@@ -125,7 +157,7 @@ class PyRainGui(QtWidgets.QMainWindow):
 
         self.setMenuBar(menubar)
 
-    def setup_controls(self):
+    def setup_heatmap_controls(self):
         box_controls = QtWidgets.QGroupBox(self.centralwidget)
         size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Ignored)
         size_policy.setHorizontalStretch(0)
@@ -222,6 +254,7 @@ class PyRainGui(QtWidgets.QMainWindow):
 
     def status(self):
         print(len(self.replay.netstream))
+
     def show_open_file(self):
         home = path.expanduser('~')
         # replay_folder = home+'\\My Games\\\Rocket League\\TAGame\\Demos'
