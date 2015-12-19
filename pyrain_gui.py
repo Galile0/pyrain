@@ -71,7 +71,7 @@ class PyRainGui(QtWidgets.QMainWindow):
         vl_centralw.addWidget(self.txt_log)
 
         self.setCentralWidget(self.centralwidget)
-        self.centralwidget.setEnabled(False)
+        # self.centralwidget.setEnabled(False)
 
         self.setup_menu()
         self.setup_toolbar()
@@ -81,21 +81,28 @@ class PyRainGui(QtWidgets.QMainWindow):
         metaview_grid = QtWidgets.QGridLayout(tab)
 
         self.lst_meta = QtWidgets.QListView(tab)
-        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Expanding)
+        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Expanding)
         size_policy.setVerticalStretch(1)
+        size_policy.setHorizontalStretch(1)
         size_policy.setHeightForWidth(self.lst_meta.sizePolicy().hasHeightForWidth())
         self.lst_meta.setSizePolicy(size_policy)
-        self.lst_meta.setMinimumSize(QtCore.QSize(0, 300))
-        self.lst_meta.setMaximumSize(QtCore.QSize(175, 400))
+        self.lst_meta.setMinimumSize(QtCore.QSize(100, 235))
+        self.lst_meta.setMaximumSize(QtCore.QSize(200, 400))
         metaview_grid.addWidget(self.lst_meta, 0, 1, 1, 1)
 
-        spacer = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        spacer = QtWidgets.QSpacerItem(20, 0, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         metaview_grid.addItem(spacer, 1, 1, 1, 1)
 
         self.txt_meta = QtWidgets.QPlainTextEdit(tab)
+        self.txt_meta.setMinimumWidth(356)
+        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Ignored)
+        self.txt_meta.setSizePolicy(size_policy)
         metaview_grid.addWidget(self.txt_meta, 0, 2, 2, 1)
 
     def setup_heatmapview(self, tab):
+        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred,
+                                            QtWidgets.QSizePolicy.Ignored)
+        tab.setSizePolicy(size_policy)
         hzl_1 = QtWidgets.QHBoxLayout(tab)  # Main Container (Controls | Figure)
 
         # CONTROLS
@@ -105,7 +112,7 @@ class PyRainGui(QtWidgets.QMainWindow):
         # PLOTTING AREA
         self.mpl_widget = QtWidgets.QWidget(self.centralwidget)
         size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding,
-                                            QtWidgets.QSizePolicy.MinimumExpanding)
+                                            QtWidgets.QSizePolicy.Ignored)
         size_policy.setHeightForWidth(self.mpl_widget.sizePolicy().hasHeightForWidth())
         self.mpl_widget.setSizePolicy(size_policy)
         self.mpl_widget.setMinimumSize(QtCore.QSize(356, 0))
@@ -159,12 +166,12 @@ class PyRainGui(QtWidgets.QMainWindow):
 
     def setup_heatmap_controls(self):
         box_controls = QtWidgets.QGroupBox(self.centralwidget)
-        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Ignored)
-        size_policy.setHorizontalStretch(0)
+        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.MinimumExpanding)
         size_policy.setVerticalStretch(1)
+        size_policy.setHorizontalStretch(1)
         size_policy.setHeightForWidth(box_controls.sizePolicy().hasHeightForWidth())
         box_controls.setSizePolicy(size_policy)
-        box_controls.setMinimumSize(QtCore.QSize(0, 285))
+        box_controls.setMinimumSize(QtCore.QSize(150, 250))
         box_controls.setMaximumSize(QtCore.QSize(200, 16777215))
         box_controls.setAutoFillBackground(True)
 
@@ -175,21 +182,17 @@ class PyRainGui(QtWidgets.QMainWindow):
 
         lbl_plots = QtWidgets.QLabel(box_controls)
         size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
-        size_policy.setHorizontalStretch(0)
-        size_policy.setVerticalStretch(0)
         size_policy.setHeightForWidth(lbl_plots.sizePolicy().hasHeightForWidth())
         lbl_plots.setSizePolicy(size_policy)
-        lbl_plots.setMinimumSize(QtCore.QSize(0, 0))
         lbl_plots.setText('Available Plots:')
         vl_controls.addWidget(lbl_plots)
 
         self.lst_plots = QtWidgets.QListWidget(box_controls)
         size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.MinimumExpanding)
-        size_policy.setHorizontalStretch(0)
         size_policy.setVerticalStretch(1)
         size_policy.setHeightForWidth(self.lst_plots.sizePolicy().hasHeightForWidth())
         self.lst_plots.setSizePolicy(size_policy)
-        self.lst_plots.setMinimumSize(QtCore.QSize(0, 60))
+        self.lst_plots.setMinimumSize(QtCore.QSize(0, 50))
         self.lst_plots.setMaximumSize(QtCore.QSize(16777215, 200))
         self.lst_plots.setFrameShape(QtWidgets.QFrame.Box)
         self.lst_plots.setFrameShadow(QtWidgets.QFrame.Sunken)
