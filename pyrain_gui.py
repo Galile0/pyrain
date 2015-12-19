@@ -1,8 +1,14 @@
 import pickle
+import traceback
+from io import StringIO
+
 from PyQt5 import QtCore, QtGui, QtWidgets
 import sys
 from os import path
+from queue import Queue
+from threading import Thread, Event
 from pyrope.replay import Replay
+from time import sleep, time, strftime
 
 
 class PyRainGui(QtWidgets.QMainWindow):
@@ -38,8 +44,6 @@ class PyRainGui(QtWidgets.QMainWindow):
         self.centralwidget = QtWidgets.QWidget(self)
         size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding,
                                             QtWidgets.QSizePolicy.MinimumExpanding)
-        size_policy.setHorizontalStretch(0)
-        size_policy.setVerticalStretch(0)
         size_policy.setHeightForWidth(self.centralwidget.sizePolicy().hasHeightForWidth())
         self.centralwidget.setSizePolicy(size_policy)
 
@@ -54,8 +58,6 @@ class PyRainGui(QtWidgets.QMainWindow):
         self.mpl_widget = QtWidgets.QWidget(self.centralwidget)
         size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding,
                                             QtWidgets.QSizePolicy.MinimumExpanding)
-        size_policy.setHorizontalStretch(0)
-        size_policy.setVerticalStretch(0)
         size_policy.setHeightForWidth(self.mpl_widget.sizePolicy().hasHeightForWidth())
         self.mpl_widget.setSizePolicy(size_policy)
         self.mpl_widget.setMinimumSize(QtCore.QSize(356, 0))
@@ -65,8 +67,6 @@ class PyRainGui(QtWidgets.QMainWindow):
         self.txt_log = QtWidgets.QPlainTextEdit(self.centralwidget)
         size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding,
                                             QtWidgets.QSizePolicy.Minimum)
-        size_policy.setHorizontalStretch(0)
-        size_policy.setVerticalStretch(0)
         size_policy.setHeightForWidth(self.txt_log.sizePolicy().hasHeightForWidth())
         self.txt_log.setSizePolicy(size_policy)
         self.txt_log.setMaximumSize(QtCore.QSize(16777215, 100))
@@ -218,7 +218,10 @@ class PyRainGui(QtWidgets.QMainWindow):
     def setup_signals(self):
         self.action_open.triggered.connect(self.show_open_file)
         self.action_exit.triggered.connect(self.close)
+        self.btn_calc.clicked.connect(self.status)
 
+    def status(self):
+        print(len(self.replay.netstream))
     def show_open_file(self):
         home = path.expanduser('~')
         # replay_folder = home+'\\My Games\\\Rocket League\\TAGame\\Demos'
@@ -231,29 +234,119 @@ class PyRainGui(QtWidgets.QMainWindow):
             ext = fname[0].split('.')[-1]
             if ext == 'replay':
                 self.replay = Replay(path=fname[0])
-                self.show_progress()
+                msg = 'Header Parsed. Decode Netstream now?\n(This might take a while)'
+                question = QtWidgets.QMessageBox().question(self, 'Proceed', msg,
+                                                            QtWidgets.QMessageBox.Yes,
+                                                            QtWidgets.QMessageBox.No)
+                if question == QtWidgets.QMessageBox.Yes:
+                    self.show_progress()
             elif ext == '.pyrope':
                 self.replay = pickle.load(open(fname[0], 'rb'))
 
     def show_progress(self):
-        self.replay.parse_header()
-        max = self.replay.header.parsed['NumFrames']
-        progress = QtWidgets.QProgressDialog(self)
-        progress.setCancelButtonText('Mission Abort!')
-        progress.setWindowTitle('Parsing Replay')
-        progress.setRange(0, max)
-        # qin = Queue()
-        # qout = Queue()
-        # thread_parser = self.replay.parse_netstream((qin, qout))
-        # progress.show()
-        # while thread_parser.isAlive():
-        #     print(qout.get())
-        #     if progress.wasCanceled():
-        #         print("wascanceled")
-        #         qin.put('stop')
-        #         break
-        # progress.close()
+        num_frames = self.replay.header['NumFrames']-1
+        progress = ProgressDialog(self, num_frames)
 
+        ti = ThreadedImport(self, self.replay)
+        ti.progress.connect(progress.set_value)
+        # ti.done.connect(progress.close)
+        progress.btn_cancel.clicked.connect(ti.setstop)
+        progress.show()
+        ti.start()
+
+
+class ProgressDialog(QtWidgets.QDialog):
+
+    def __init__(self, parent, limit):
+        super().__init__(parent)
+        self.setWindowModality(QtCore.Qt.ApplicationModal)
+        self.setWindowTitle('Parsing Replay')
+        self.setMinimumSize(QtCore.QSize(400, 75))
+        self.setMaximumSize(QtCore.QSize(400, 75))
+        vlayout = QtWidgets.QVBoxLayout(self)
+        vlayout.setSizeConstraint(QtWidgets.QLayout.SetMinAndMaxSize)
+
+        self.pbar = QtWidgets.QProgressBar(self)
+        self.pbar.setRange(0, limit)
+        self.pbar.setAlignment(QtCore.Qt.AlignCenter)
+        self.pbar.setFormat("Parsing Netstream %p%")
+        self.pbar.setMinimumSize(QtCore.QSize(380, 20))
+        self.pbar.setMaximumSize(QtCore.QSize(380, 20))
+        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed,
+                                            QtWidgets.QSizePolicy.Fixed)
+        self.pbar.setSizePolicy(size_policy)
+        vlayout.addWidget(self.pbar)
+
+        self.btn_cancel = QtWidgets.QPushButton(self)
+        self.btn_cancel.setSizePolicy(size_policy)
+        self.btn_cancel.setMinimumSize(QtCore.QSize(120, 23))
+        self.btn_cancel.setMaximumSize(QtCore.QSize(120, 23))
+        self.btn_cancel.setText("MISSION ABORT!")
+        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        self.btn_cancel.setSizePolicy(size_policy)
+        vlayout.addWidget(self.btn_cancel)
+
+        self.btn_cancel.clicked.connect(self.close)
+
+    def set_value(self, value):
+        self.pbar.setProperty("value", value)
+        if value == self.pbar.maximum():
+            self.close()
+
+
+class ThreadedImport(QtCore.QThread):
+    progress = QtCore.pyqtSignal(int)
+    done = QtCore.pyqtSignal()
+
+    def __init__(self, parent, replay):
+        QtCore.QThread.__init__(self, parent)
+        self.replay = replay
+        self.stop = Event()
+
+    def run(self):
+        qout = Queue()
+        parse_thread = Thread(target=self.replay.parse_netstream, args=(qout, self.stop))
+        parse_thread.start()
+        while True:
+            if qout.empty():
+                sleep(0.1)
+                continue
+            msg = qout.get()
+            if msg == 'done':
+                self.done.emit()
+                break
+            elif msg == 'exception':
+                exc = qout.get()
+                raise exc
+            elif msg == 'abort':
+                return
+            else:
+                self.progress.emit(msg)
+
+    def setstop(self):
+        self.stop.set()
+
+def excepthook(excType, excValue, tracebackobj):
+    """
+    Global function to catch unhandled exceptions.
+
+    @param excType exception type
+    @param excValue exception value
+    @param tracebackobj traceback object
+    """
+    separator = '-' * 80
+    notice = "Exception encountered\n"  # TODO MORE INFOS
+    tbinfofile = StringIO()
+    traceback.print_tb(tracebackobj, None, tbinfofile)
+    tbinfofile.seek(0)
+    tbinfo = tbinfofile.read()
+    errmsg = '%s: \n%s' % (str(excType), str(excValue))
+    sections = [separator, errmsg, separator, tbinfo]
+    msg = '\n'.join(sections)
+    errorbox = QtWidgets.QMessageBox()
+    errorbox.setText(str(notice)+str(msg))
+    errorbox.exec_()
+sys.excepthook = excepthook
 app = QtWidgets.QApplication(sys.argv)
 ui = PyRainGui()
 ui.setup_ui()
