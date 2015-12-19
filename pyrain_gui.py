@@ -1,5 +1,7 @@
+import json
 import pickle
 import traceback
+from collections import OrderedDict
 from io import StringIO
 
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -80,7 +82,7 @@ class PyRainGui(QtWidgets.QMainWindow):
     def setup_metaview(self, tab):
         metaview_grid = QtWidgets.QGridLayout(tab)
 
-        self.lst_meta = QtWidgets.QListView(tab)
+        self.lst_meta = QtWidgets.QListWidget(tab)
         size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Expanding)
         size_policy.setVerticalStretch(1)
         size_policy.setHorizontalStretch(1)
@@ -261,7 +263,7 @@ class PyRainGui(QtWidgets.QMainWindow):
     def show_open_file(self):
         home = path.expanduser('~')
         # replay_folder = home+'\\My Games\\\Rocket League\\TAGame\\Demos'
-        replay_folder = path.dirname(path.realpath(__file__))  # TODO DEV ONLY
+        replay_folder = path.dirname(path.realpath(__file__))+'\\testfiles'  # TODO DEV ONLY
         if not path.isdir(replay_folder):
             replay_folder = home
         ext = 'Replay (*.pyrope *.replay)'
@@ -278,6 +280,31 @@ class PyRainGui(QtWidgets.QMainWindow):
                     self.show_progress()
             elif ext == '.pyrope':
                 self.replay = pickle.load(open(fname[0], 'rb'))
+            # self.meta_attributes = {k:v for (k,v) in self.replay.__dict__.items() if not k.startswith('_')}
+            self.meta_attributes = OrderedDict([('CRC', self.replay.crc),  # TODO search better way than hardcoding
+                                                ('Version', self.replay.version),  # while preserving order
+                                                ('Header', self.replay.header),
+                                                ('Maps', self.replay.maps),
+                                                ('KeyFrames', self.replay.keyframes),
+                                                ('Debug Log', self.replay.dbg_log),
+                                                ('Goal Frames', self.replay.goal_frames),
+                                                ('Packages', self.replay.packages),
+                                                ('Objects', self.replay.objects),
+                                                ('Names', self.replay.names),
+                                                ('Class Map', self.replay.class_index_map),
+                                                ('Netcache Tree', self.replay.netcache)])
+            for k in self.meta_attributes.keys():
+                self.lst_meta.addItem(k)
+            self.lst_meta.itemSelectionChanged.connect(self.show_meta)
+
+    def show_meta(self):
+        item = self.lst_meta.currentItem()
+        data = self.meta_attributes[item.text()]
+        if not data:
+            data = "Empty Attribute"
+        else:
+            data = json.dumps(data, sort_keys=True, indent=4, separators=(',', ': '))
+        self.txt_meta.setPlainText(data)
 
     def show_progress(self):
         num_frames = self.replay.header['NumFrames']-1
