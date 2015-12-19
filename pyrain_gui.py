@@ -54,13 +54,15 @@ class PyRainGui(QtWidgets.QMainWindow):
         tabview = QtWidgets.QTabWidget(self.centralwidget)
         tabview.setTabPosition(QtWidgets.QTabWidget.North)
 
-        metaview = QtWidgets.QWidget()
-        tabview.addTab(metaview, "MetaData")
-        self.setup_metaview(metaview)
+        self.metaview = QtWidgets.QWidget()
+        self.metaview.setEnabled(False)
+        tabview.addTab(self.metaview, "MetaData")
+        self.setup_metaview(self.metaview)
 
-        heatmapview = QtWidgets.QWidget()
-        tabview.addTab(heatmapview, "Heatmaps")
-        self.setup_heatmapview(heatmapview)
+        self.heatmapview = QtWidgets.QWidget()
+        self.heatmapview.setEnabled(False)
+        tabview.addTab(self.heatmapview, "Heatmaps")
+        self.setup_heatmapview(self.heatmapview)
 
         self.txt_log = QtWidgets.QPlainTextEdit(self.centralwidget)
         size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding,
@@ -73,11 +75,13 @@ class PyRainGui(QtWidgets.QMainWindow):
         vl_centralw.addWidget(self.txt_log)
 
         self.setCentralWidget(self.centralwidget)
-        # self.centralwidget.setEnabled(False)
+        self.centralwidget.setEnabled(False)
 
         self.setup_menu()
         self.setup_toolbar()
         self.setup_signals()
+
+        self.txt_log.appendPlainText('Setup Completed. Welcome to PyRain')
 
     def setup_metaview(self, tab):
         metaview_grid = QtWidgets.QGridLayout(tab)
@@ -164,6 +168,13 @@ class PyRainGui(QtWidgets.QMainWindow):
         self.action_exit.setText('Exit')
         menu_file.addAction(self.action_exit)
 
+        menu_view = QtWidgets.QMenu(menubar)
+        menu_view.setTitle('View')
+        menubar.addAction(menu_view.menuAction())
+
+        self.action_toggle_log = QtWidgets.QAction(self)
+        self.action_toggle_log.setText('Debug Log')
+        menu_view.addAction(self.action_toggle_log)
         self.setMenuBar(menubar)
 
     def setup_heatmap_controls(self):
@@ -255,7 +266,12 @@ class PyRainGui(QtWidgets.QMainWindow):
     def setup_signals(self):
         self.action_open.triggered.connect(self.show_open_file)
         self.action_exit.triggered.connect(self.close)
+        self.action_toggle_log.triggered.connect(self.toggle_log)
         self.btn_calc.clicked.connect(self.status)
+        self.lst_meta.itemSelectionChanged.connect(self.show_meta)
+
+    def toggle_log(self):
+        self.txt_log.setVisible(not self.txt_log.isVisible())
 
     def status(self):
         print(len(self.replay.netstream))
@@ -272,14 +288,20 @@ class PyRainGui(QtWidgets.QMainWindow):
             ext = fname[0].split('.')[-1]
             if ext == 'replay':
                 self.replay = Replay(path=fname[0])
+                self.txt_log.appendPlainText('Rocket League Replay File loaded and Validated')
                 msg = 'Header Parsed. Decode Netstream now?\n(This might take a while)'
                 question = QtWidgets.QMessageBox().question(self, 'Proceed', msg,
                                                             QtWidgets.QMessageBox.Yes,
                                                             QtWidgets.QMessageBox.No)
                 if question == QtWidgets.QMessageBox.Yes:
                     self.show_progress()
+                    self.heatmapview.setEnabled(True)
+                else:
+                    self.txt_log.appendPlainText('Netstream not Parsed. Only Metadata for view available')
             elif ext == '.pyrope':
                 self.replay = pickle.load(open(fname[0], 'rb'))
+                self.txt_log.appendPlainText('pyrain Parsed Replay File sucessfully loaded')
+                self.heatmapview.setEnabled(True)
             # self.meta_attributes = {k:v for (k,v) in self.replay.__dict__.items() if not k.startswith('_')}
             self.meta_attributes = OrderedDict([('CRC', self.replay.crc),  # TODO search better way than hardcoding
                                                 ('Version', self.replay.version),  # while preserving order
@@ -295,7 +317,7 @@ class PyRainGui(QtWidgets.QMainWindow):
                                                 ('Netcache Tree', self.replay.netcache)])
             for k in self.meta_attributes.keys():
                 self.lst_meta.addItem(k)
-            self.lst_meta.itemSelectionChanged.connect(self.show_meta)
+            self.metaview.setEnabled(True)
 
     def show_meta(self):
         item = self.lst_meta.currentItem()
@@ -312,11 +334,13 @@ class PyRainGui(QtWidgets.QMainWindow):
 
         ti = ThreadedImport(self, self.replay)
         ti.progress.connect(progress.set_value)
-        # ti.done.connect(progress.close)
+        ti.done.connect(self.netstream_loaded)
         progress.btn_cancel.clicked.connect(ti.setstop)
         progress.show()
         ti.start()
 
+    def netstream_loaded(self):
+        self.txt_log.appendPlainText('Netstream Parsed. No Errors found')
 
 class ProgressDialog(QtWidgets.QDialog):
 
@@ -388,6 +412,7 @@ class ThreadedImport(QtCore.QThread):
 
     def setstop(self):
         self.stop.set()
+
 
 def excepthook(excType, excValue, tracebackobj):
     """
