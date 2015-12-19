@@ -223,6 +223,7 @@ class Replay:
         for i in range(self.header['NumFrames']):
             if ev_stop and ev_stop.is_set():
                 self._netstream_raw.pos = 0  # Reset in case parsing gets restarted
+                qout.put('abort')
                 return None
             frame = Frame()
             try:
