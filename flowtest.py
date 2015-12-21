@@ -59,6 +59,14 @@ class PyRainGui(QMainWindow):
         
 
 class FlowLayout(QLayout):
+    """
+    BEHAVIOR:
+        Takes elements with min and max size in. As long as its own width is smaller than what the child widget could do
+        it resizes the child widget while keeping the aspect ratio. When the layouts width is bigger than the maximum of
+        the child widget it stops the upscaling and instead kicks in when it finds enough space to place a second
+        maximimized child widget next to it. Thats the flow part.
+        TL;DR: Regular resizing from WidgetMin to WidgetMax. When max is reached freeflow takes control
+    """
     def __init__(self, parent=None, margin=0, spacing=-1):
         super(FlowLayout, self).__init__(parent)
         if parent is not None:
@@ -133,7 +141,7 @@ class FlowLayout(QLayout):
                 lineHeight = 0
             print('SELF: %d | ITEM: %d' % (self.geometry().width(), item.maximumSize().width()))
             # if self.geometry().width() > iw:
-            if self.geometry().width() >  item.maximumSize().width():
+            if self.geometry().width() >  item.maximumSize().width(): # TODO SAME FOR HEIGHT
                 # Set widget to maximum
                 item.setGeometry(QRect(x, y, item.maximumSize().width(), item.maximumSize().height()))
             else:
