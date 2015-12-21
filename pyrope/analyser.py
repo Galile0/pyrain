@@ -4,19 +4,20 @@ class Analyser:
         if not replay.netstream:
             raise TypeError("Replay has to be decoded")
         self.replay = replay
+        self.player = {}
 
     def get_player(self):  # Todo add check that frames are actually parsed
-        player = {}
         for frame in self.replay.netstream.values():
             for name, value in frame.actors.items():
                 if "e_Default__PRI_TA" in name:
                     try:
-                        player[value['data']['Engine.PlayerReplicationInfo:PlayerName']] = value['actor_id']
+                        self.player[value['data']['Engine.PlayerReplicationInfo:PlayerName']] = value['actor_id']
                     except KeyError:
                         pass
-        return player
+        return self.player
 
-    def get_player_pos(self, playerid, sep=False):
+    def get_player_pos(self, player, sep=False):
+        playerid = self.player[player]
         current_car = -1
         car_actors = []
         frame_left = max(self.replay.netstream, key=int)  # Assume player left never, or after last frame
@@ -52,7 +53,7 @@ class Analyser:
                 pass
         result = []
         if sep:
-            slice_frames = [v['frame'] - frame_entered for v in self.replay.header.parsed['Goals'] if
+            slice_frames = [v['frame'] - frame_entered for v in self.replay.header['Goals'] if
                             frame_entered <= v['frame'] <= frame_left]
             slice_frames.append(frame_left - frame_entered)
             lastframe = 0

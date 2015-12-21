@@ -246,8 +246,6 @@ class Replay:
         del d['_replay']
         del d['_netstream_raw']
         del d['_header_raw']
-        del d['netcache']
-        del d['class_index_map']  # Those things are not needed once the replay is parsed
         return d
 
     def __setstate__(self, d):
