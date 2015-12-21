@@ -315,7 +315,8 @@ class PyRainGui(QMainWindow):
         folder = path.dirname(path.realpath(__file__))
         ext = 'Replay (*.pyrope)'
         filename = QFileDialog.getSaveFileName(self, 'Load Replay', folder, ext)
-        pickle.dump(self.replay, open(filename[0], 'wb'))
+        if filename[0]:
+            pickle.dump(self.replay, open(filename[0], 'wb'))
 
     def toggle_log(self):
         self.txt_log.setVisible(not self.txt_log.isVisible())
