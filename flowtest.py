@@ -20,29 +20,37 @@ class PyRainGui(QMainWindow):
         self.centralwidget = QWidget(self)
         size_policy = QSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
         self.centralwidget.setSizePolicy(size_policy)
+        self.centralwidget.setMinimumSize(QSize(150, 50))
         central_grid = QGridLayout(self.centralwidget)
-
-        self.listWidget = QListWidget(self.centralwidget)
-        self.listWidget.setMinimumSize(QSize(150, 0))
-        self.listWidget.setMaximumSize(QSize(200, 16777215))
-        central_grid.addWidget(self.listWidget, 0, 0, 1, 1)
+        central_grid.setSizeConstraint(QLayout.SetMinAndMaxSize)
+        # self.listWidget = QListWidget(self.centralwidget)
+        # self.listWidget.setSizePolicy(QSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding))
+        # self.listWidget.setMinimumSize(QSize(0, 0))
+        # self.listWidget.setMaximumSize(QSize(200, 16777215))
+        # central_grid.addWidget(self.listWidget, 0, 0, 1, 1)
         
         self.sa = QScrollArea(self.centralwidget)
-        self.sa.setMinimumSize(QSize(150, 100))
         self.sa.setWidgetResizable(True)
         self.sa.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+
         self.sac = QWidget()
-        self.sacl = FlowLayout(self.sac)
-        # self.sacl = QVBoxLayout(self.sac)
+        self.sacl = FlowLayout(self.sac, container=self.sa, resize_threshold=(-20,-5))
         self.sa.setWidget(self.sac)
         central_grid.addWidget(self.sa, 0, 1, 1, 1)
         
         self.plainTextEdit = QPlainTextEdit(self.centralwidget)
         self.plainTextEdit.setMaximumSize(QSize(16777215, 100))
         central_grid.addWidget(self.plainTextEdit, 1, 0, 1, 2)
-        
+
         self.setCentralWidget(self.centralwidget)
-        
+        self.plainTextEdit.textChanged.connect(self.dbg)
+    def dbg(self):
+        print(self.sa.sizeHint())
+        print(self.sa.minimumSize())
+        print(self.sa.minimumSizeHint())
+        print(self.centralwidget.sizeHint())
+
+        print('==================')
     def addLabels(self):
         lbl_list = []
         for i in range(10):
@@ -50,8 +58,8 @@ class PyRainGui(QMainWindow):
             lbl.setText("LABEL")
             lbl.setFrameShape(QFrame.Box)
             lbl.setLineWidth(5)
-            lbl.setMinimumSize(100,80)
-            lbl.setMaximumSize(400,320)
+            lbl.setMinimumSize(50, 40)
+            lbl.setMaximumSize(400, 320)
             size_policy = QSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
             lbl.setSizePolicy(size_policy)
             self.sacl.addWidget(lbl)
@@ -67,12 +75,16 @@ class FlowLayout(QLayout):
         maximimized child widget next to it. Thats the flow part.
         TL;DR: Regular resizing from WidgetMin to WidgetMax. When max is reached freeflow takes control
     """
-    def __init__(self, parent=None, margin=0, spacing=-1):
+    def __init__(self, parent=None, container=None, resize_threshold=(0,0), margin=0, spacing=-1):
         super(FlowLayout, self).__init__(parent)
         if parent is not None:
             self.setContentsMargins(margin, margin, margin, margin)
         self.setSpacing(spacing)
         self.itemList = []
+        self.container = parent
+        if container:
+            self.container = container
+        self.resize_threshold = resize_threshold
 
     def __del__(self):
         item = self.takeAt(0)
@@ -124,29 +136,30 @@ class FlowLayout(QLayout):
         x = rect.x()
         y = rect.y()
         lineHeight = 0
-        print("ENTER DO LAYOUT")
+
         for item in self.itemList:
             wid = item.widget()
-            iw = item.geometry().width()
-            ix = item.geometry().x()
-            iy = item.geometry().y()
-
             spaceX = self.spacing() + wid.style().layoutSpacing(QSizePolicy.PushButton, QSizePolicy.PushButton, Qt.Horizontal)
             spaceY = self.spacing() + wid.style().layoutSpacing(QSizePolicy.PushButton, QSizePolicy.PushButton, Qt.Vertical)
             nextX = x + item.geometry().width() + spaceX
+            cont_width = self.container.geometry().width()+self.resize_threshold[0]
+            cont_height = self.container.geometry().height()+self.resize_threshold[1]
             if nextX - spaceX > rect.right() and lineHeight > 0:
                 x = rect.x()
                 y = y + lineHeight + spaceY
                 nextX = x + item.geometry().width() + spaceX
                 lineHeight = 0
-            print('SELF: %d | ITEM: %d' % (self.geometry().width(), item.maximumSize().width()))
-            # if self.geometry().width() > iw:
-            if self.geometry().width() >  item.maximumSize().width(): # TODO SAME FOR HEIGHT
-                # Set widget to maximum
+            adjust_height = False
+            if cont_width*0.8 >= cont_height: adjust_height=True
+            if cont_width >= item.maximumSize().width() and cont_height >= item.maximumSize().height():
+                # Set widget width to maximum
                 item.setGeometry(QRect(x, y, item.maximumSize().width(), item.maximumSize().height()))
+            elif adjust_height and cont_height <= item.maximumSize().height():
+                # Set widget height to fit layout height
+                item.setGeometry(QRect(x, y, 1.25*cont_height, cont_height))
             else:
-                # Set widget to parent size
-                item.setGeometry(QRect(x, y, self.geometry().width(), 0.8*self.geometry().width()))
+                # Set widget size to parent size
+                item.setGeometry(QRect(x, y, cont_width, 0.8*cont_width))
             x = nextX
             lineHeight = max(lineHeight, item.geometry().height())
         return y + lineHeight - rect.y()
