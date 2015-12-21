@@ -140,20 +140,19 @@ class PyRainGui(QMainWindow):
 
         # PLOTTING AREA
         mpl_scrollarea = QScrollArea(self.heatmapview)
-        mpl_scrollarea.setSizePolicy(QSizePolicy(QSizePolicy.MinimumExpanding,
-                                                 QSizePolicy.MinimumExpanding))
+        # mpl_scrollarea.setSizePolicy(QSizePolicy(QSizePolicy.MinimumExpanding,
+        #                                          QSizePolicy.MinimumExpanding))
         mpl_scrollarea.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         mpl_scrollarea.setWidgetResizable(True)
-        mpl_content = QWidget()
+        self.mpl_content = QWidget()
+        self.mpl_content.setMinimumSize(QSize(400, 320))
+        self.mpl_content.setSizePolicy(QSizePolicy(QSizePolicy.MinimumExpanding,
+                                       QSizePolicy.MinimumExpanding))
 
-        size_policy = QSizePolicy(QSizePolicy.MinimumExpanding,
-                                  QSizePolicy.MinimumExpanding)
-        mpl_content.setSizePolicy(size_policy)
+        self.mpl_l = FlowLayout(self.mpl_content)
+        self.mpl_l.setSizeConstraint(QLayout.SetMinAndMaxSize)
 
-        self.mpl_l = FlowLayout(mpl_content)
-        self.mpl_l.setSizeConstraint(QLayout.SetMinimumSize)
-
-        mpl_scrollarea.setWidget(mpl_content)
+        mpl_scrollarea.setWidget(self.mpl_content)
         hzl_1.addWidget(mpl_scrollarea)
 
     def setup_toolbar(self):
@@ -334,9 +333,13 @@ class PyRainGui(QMainWindow):
         for hm in hm_list:
             fig = FigureCanvas(hm)
             fig.setMinimumSize(QSize(400, 320))
-            fig.setMaximumSize(QSize(600, 480))
-            fig.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
+            # fig.setMaximumSize(QSize(600, 480))
+            fig.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+            print('CONTENT1', self.mpl_content.sizeHint())
+            print('FIGURE', fig.sizeHint())
+
             self.mpl_l.addWidget(fig)
+            print('CONTENT2', self.mpl_content.sizeHint())
         # self.mpl_scrollarea.setWidget(self.mpl_content)
 
     def show_open_file(self):
@@ -364,7 +367,6 @@ class PyRainGui(QMainWindow):
                 self.txt_log.appendPlainText('pyrain Parsed Replay File sucessfully loaded')
                 self.netstream_loaded()
                 self.heatmapview.setEnabled(True)
-            # self.meta_attributes = {k:v for (k,v) in self.replay.__dict__.items() if not k.startswith('_')}
             self.meta_attributes = OrderedDict([('CRC', self.replay.crc),  # TODO search better way than hardcoding
                                                 ('Version', self.replay.version),  # while preserving order
                                                 ('Header', self.replay.header),
@@ -588,7 +590,10 @@ class FlowLayout(QLayout):
                 nextX = x + item.sizeHint().width() + spaceX
                 lineHeight = 0
             if not testOnly:
-                item.setGeometry(QRect(QPoint(x, y), item.sizeHint()))
+                if self.geometry().width()<item.sizeHint().width():
+                    item.setGeometry(QRect(QPoint(x, y), QPoint(self.geometry().width(), 0.8*self.geometry().width())))
+                else:
+                    item.setGeometry(QRect(QPoint(x, y), item.sizeHint()))
             x = nextX
             lineHeight = max(lineHeight, item.sizeHint().height())
         return y + lineHeight - rect.y()
