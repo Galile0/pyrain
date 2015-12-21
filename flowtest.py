@@ -32,8 +32,8 @@ class PyRainGui(QMainWindow):
         self.sa.setWidgetResizable(True)
         self.sa.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.sac = QWidget()
-        # self.sacl = FlowLayout(self.sac)
-        self.sacl = QVBoxLayout(self.sac)
+        self.sacl = FlowLayout(self.sac)
+        # self.sacl = QVBoxLayout(self.sac)
         self.sa.setWidget(self.sac)
         central_grid.addWidget(self.sa, 0, 1, 1, 1)
         
@@ -116,20 +116,31 @@ class FlowLayout(QLayout):
         x = rect.x()
         y = rect.y()
         lineHeight = 0
+        print("ENTER DO LAYOUT")
         for item in self.itemList:
             wid = item.widget()
+            iw = item.geometry().width()
+            ix = item.geometry().x()
+            iy = item.geometry().y()
+
             spaceX = self.spacing() + wid.style().layoutSpacing(QSizePolicy.PushButton, QSizePolicy.PushButton, Qt.Horizontal)
             spaceY = self.spacing() + wid.style().layoutSpacing(QSizePolicy.PushButton, QSizePolicy.PushButton, Qt.Vertical)
-            nextX = x + item.sizeHint().width() + spaceX
+            nextX = x + item.geometry().width() + spaceX
             if nextX - spaceX > rect.right() and lineHeight > 0:
                 x = rect.x()
                 y = y + lineHeight + spaceY
-                nextX = x + item.sizeHint().width() + spaceX
+                nextX = x + item.geometry().width() + spaceX
                 lineHeight = 0
-            if not testOnly:
-                item.setGeometry(QRect(QPoint(x, y), item.sizeHint()))
+            print('SELF: %d | ITEM: %d' % (self.geometry().width(), item.maximumSize().width()))
+            # if self.geometry().width() > iw:
+            if self.geometry().width() >  item.maximumSize().width():
+                # Set widget to maximum
+                item.setGeometry(QRect(x, y, item.maximumSize().width(), item.maximumSize().height()))
+            else:
+                # Set widget to parent size
+                item.setGeometry(QRect(x, y, self.geometry().width(), 0.8*self.geometry().width()))
             x = nextX
-            lineHeight = max(lineHeight, item.sizeHint().height())
+            lineHeight = max(lineHeight, item.geometry().height())
         return y + lineHeight - rect.y()
 
 def excepthook(excType, excValue, tracebackobj):
