@@ -2,42 +2,25 @@ import copy
 import json
 import pickle
 import traceback
-from collections import OrderedDict
-from io import StringIO
-
-import math
-from PyQt5.QtCore import QSize, Qt, QRect, QThread, pyqtSignal, QPoint
 import sys
+
 from os import path
 from queue import Queue
 from threading import Thread, Event
+from collections import OrderedDict
+from io import StringIO
+from time import sleep
 
+from PyQt5.QtCore import QSize, Qt, QRect, QThread, pyqtSignal, QPoint
 from PyQt5.QtWidgets import (QSizePolicy, QWidget, QVBoxLayout, QTabWidget, QPlainTextEdit, QGridLayout, QListWidget,
-    QSpacerItem, QHBoxLayout, QScrollArea, QLayout, QToolBar, QLabel, QComboBox, QPushButton, QMenuBar, QMenu, QAction,
-    QGroupBox, QFrame, QSlider, QCheckBox, QDialog, QApplication, QProgressBar, QMessageBox, QFileDialog, QMainWindow)
+                             QSpacerItem, QHBoxLayout, QScrollArea, QLayout, QToolBar, QLabel, QComboBox, QPushButton, QMenuBar, QMenu, QAction,
+                             QGroupBox, QFrame, QSlider, QCheckBox, QDialog, QApplication, QProgressBar, QMessageBox, QFileDialog, QMainWindow,
+                             QWidgetItem, QLayoutItem)
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.colors import LogNorm
-from matplotlib.figure import Figure
-import matplotlib.pyplot as plt
-import numpy as np
 
-from pyrope.analyser import Analyser
+import plotter
+from pyrope.analyser import Analyser, AnalyserUtils
 from pyrope.replay import Replay
-from time import sleep, time, strftime
-
-stadium = [(x + 100 if x > 0 else x - 100, y + 100 if y > 0 else y - 100) for x, y in
-           [(2646, 5097), (2576, 5101), (-2512, 5101), (-2571, 5100), (-2641, 5097), (-2711, 5089), (-2837, 5060),
-            (-2957, 5014), (-3068, 4949), (-3176, 4860), (-3359, 4678), (-3549, 4489), (-3729, 4309), (-3865, 4169),
-            (-3941, 4066), (-4007, 3943), (-4048, 3821), (-4070, 3695), (-4076, 3625), (-4078, 3496), (-4077, 3367),
-            (-4077, -3586), (-4073, -3659), (-4063, -3747), (-4024, -3902), (-3955, -4045), (-3853, -4183),
-            (-3743, -4296), (-3631, -4407), (-3520, -4518), (-3399, -4639), (-3288, -4750), (-3176, -4860),
-            (-3043, -4965), (-2907, -5036), (-2841, -5060), (-2761, -5081), (-2679, -5094), (-2611, -5101),
-            (2551, -5101), (2616, -5099), (2693, -5092), (2757, -5081), (2904, -5037), (3029, -4975), (3140, -4893),
-            (3249, -4790), (3345, -4692), (3442, -4596), (3538, -4499), (3643, -4394), (3739, -4298), (3834, -4202),
-            (3920, -4099), (3994, -3974), (4040, -3851), (4057, -3781), (4068, -3722), (4077, -3592), (4077, 3562),
-            (4074, 3652), (4063, 3750), (4043, 3838), (4017, 3919), (3989, 3984), (3900, 4127), (3796, 4243),
-            (3685, 4353), (3574, 4464), (3453, 4585), (3342, 4695), (3232, 4805), (3108, 4918), (2981, 5001),
-            (2906, 5036), (2842, 5060), (2763, 5081), (2646, 5097)]]  # TODO Hardcode stadium size extension
 
 
 class PyRainGui(QMainWindow):
@@ -45,21 +28,8 @@ class PyRainGui(QMainWindow):
     def __init__(self):
         super().__init__()
         self.replay = None
-        self.centralwidget = None
-        self.mpl_widget = None
-        self.cmb_player = None
-        self.cmb_style = None
-        self.action_exit = None
-        self.action_open = None
-        self.btn_popout = None
-        self.btn_saveimage = None
-        self.txt_log = None
-        self.lst_plots = None
-        self.chk_logscale = None
-        self.sld_res = None
-        self.cmb_slicing = None
-        self.btn_calc = None
         self.analyser = None
+        self.datasets = {}
 
     def setup_ui(self):
         self.resize(720, 552)
@@ -211,7 +181,7 @@ class PyRainGui(QMainWindow):
         action_toggle_log.setText('Debug Log')
         menu_view.addAction(action_toggle_log)
 
-        action_open.triggered.connect(self.show_open_file)
+        action_open.triggered.connect(self.load_file)
         action_exit.triggered.connect(self.close)
         action_toggle_log.triggered.connect(self.toggle_log)
         action_save_replay.triggered.connect(self.save_replay)
@@ -249,6 +219,7 @@ class PyRainGui(QMainWindow):
         self.lst_plots.setMaximumSize(QSize(16777215, 200))
         self.lst_plots.setFrameShape(QFrame.Box)
         self.lst_plots.setFrameShadow(QFrame.Sunken)
+        self.lst_plots.setContextMenuPolicy(Qt.CustomContextMenu)
         vl_controls.addWidget(self.lst_plots)
 
         self.btn_popout = QPushButton(box_controls)
@@ -305,7 +276,24 @@ class PyRainGui(QMainWindow):
 
     def setup_signals(self):
         self.lst_meta.itemSelectionChanged.connect(self.show_meta)
-        self.btn_calc.clicked.connect(self.show_figure)
+        self.btn_calc.clicked.connect(self.generate_figures)
+        self.lst_plots.customContextMenuRequested.connect(self.show_plot)
+        self.lst_plots.clicked.connect(self.show_plot)
+
+    def show_plot(self, point=None):
+        item = self.lst_plots.currentItem().text()
+        if type(point) is not QPoint: # Left Click
+            print(self.hm_sacl.count())
+            while self.hm_sacl.count():
+                child = self.hm_sacl.takeAt(0)
+                if child is not None:
+                    child.widget().deleteLater()
+        plot = plotter.generate_figure(self.datasets[item])
+        fig = FigureCanvas(plot)
+        fig.setMinimumSize(QSize(335, 268))
+        fig.setMaximumSize(QSize(550, 440))
+        fig.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
+        self.hm_sacl.addWidget(fig)
 
     def save_replay(self):
         folder = path.dirname(path.realpath(__file__))
@@ -317,24 +305,21 @@ class PyRainGui(QMainWindow):
     def toggle_log(self):
         self.txt_log.setVisible(not self.txt_log.isVisible())
 
-    def show_figure(self):
+    def generate_figures(self):
         if not self.analyser:
-            self.txt_log.appendPlainText('Netstream not parsed yet. Please reimport replay file')
-            # return TODO REENABLE
+            self.txt_log.appendPlainText('Netstream not parsed yet. Please import replay file and parse the Netstream')
+            return
         player = self.cmb_player.currentText()
         slicing = True
         if self.cmb_slicing.currentText() == 'None':
             slicing = False
         data = self.analyser.get_player_pos(player, slicing)
-        hm_list = self.generate_figures(data, player)
-        for hm in hm_list:
-            fig = FigureCanvas(hm)
-            fig.setMinimumSize(QSize(335, 268))
-            fig.setMaximumSize(QSize(550, 440))
-            fig.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
-            self.hm_sacl.addWidget(fig)
+        new_datasets = AnalyserUtils.filter_coords(data)
+        for entry in new_datasets:
+            self.lst_plots.addItem(entry['title_short'])
+            self.datasets[entry['title_short']] = entry
 
-    def show_open_file(self):
+    def load_file(self):
         home = path.expanduser('~')
         # replay_folder = home+'\\My Games\\\Rocket League\\TAGame\\Demos'
         replay_folder = path.dirname(path.realpath(__file__))+'\\testfiles'  # TODO DEV ONLY
@@ -399,57 +384,7 @@ class PyRainGui(QMainWindow):
         self.txt_log.appendPlainText('Netstream Parsed. No Errors found')
         self.analyser = Analyser(self.replay)
         self.cmb_player.clear()
-        self.cmb_player.insertItems(0, [k for k in self.analyser.get_player().keys()])
-
-    def generate_figures(self, coords, draw_map=True, bins=(15, 12), hexbin=False, interpolate=True):
-        all_data = 0
-        figures = []
-        for i, coord in enumerate(coords):
-            fig = Figure()
-            ax = fig.add_subplot(111)
-            y = [x for x, y, z in coord['data'] if z > 15 and -5120 <= y <= 5120 and -4096 <= x <= 4096]
-            x = [y for x, y, z in coord['data'] if z > 15 and -5120 <= y <= 5120 and -4096 <= x <= 4096]
-            if not x and not y:
-                continue
-            all_data += len(x)
-            print("Building Heatmap %d with %d Data Points" % (i, len(x)))
-            ax.set_ylim((-4416, 4416))
-            ax.set_xlim((-5520, 5520))
-            my_cmap = copy.copy(plt.cm.get_cmap('jet')) # copy the default cmap
-            my_cmap.set_bad((0, 0, 1))
-            if not hexbin:
-                if interpolate:
-                    interpolate='bilinear'
-                else:
-                    interpolate='none'
-                bins = (bins[1], bins[0])
-                heatmap, xedges, yedges = np.histogram2d(y, x, bins=bins, range=[(-4416, 4416), (-5520, 5520)])
-                extent = [yedges[0], yedges[-1], xedges[-1], xedges[0]]
-                ax.imshow(heatmap, extent=extent, norm=LogNorm(), cmap=my_cmap, interpolation=interpolate)
-                # ax.hist2d(x, y, bins=(26, 20), normed=LogNorm, range=[(-4596,4596),(-5520,5520)])
-                # ax.set_aspect(0.8)
-            else:
-                # ax.set_aspect(0.8)
-                ax.hexbin(x, y, cmap=my_cmap, gridsize=bins, norm=LogNorm(), extent=[-5520, 5520, 4416,-4416])
-            if draw_map:
-                x = [y for x, y in stadium]
-                y = [x for x, y in stadium]
-                ax.plot(x, y, c='r')
-            ax.text(0.1, 0, 'Team 1',
-                    transform=ax.transAxes,
-                    bbox=dict(facecolor='white'))
-            ax.text(0.9, 0, 'Team 0',
-                    horizontalalignment='right',
-                    transform=ax.transAxes,
-                    bbox=dict(facecolor='white'))
-            ax.set_title("Player %s Start: %d End: %d" % (coord['player'], coord['start'], coord['end']),
-                         bbox=dict(facecolor='white'))
-            ax.axis('off')
-            fig.subplots_adjust(hspace=0, wspace=0, right=0.98, top=0.9, bottom=0.05, left=0.012)
-            fig.patch.set_visible(False)
-            figures.append(fig)
-        print("OVERALL POINTS", all_data)
-        return figures
+        self.cmb_player.insertItems(0, [k for k in self.analyser.player.keys()])
 
 
 class ProgressDialog(QDialog):
@@ -525,7 +460,7 @@ class ThreadedImport(QThread):
 
 class FlowLayout(QLayout):
     # TODO SHIT GETS LAGGY WITH LOTS OF MPL Figures
-    # TODO ASPECT RATIO IS HARDCODED. BETTER TAKE IT FROM WIDGETS WidthForHeight (would subclassing)
+    # TODO ASPECT RATIO IS HARDCODED. BETTER TAKE IT FROM WIDGETS WidthForHeight (would need subclassing widget)
     def __init__(self, parent=None, container=None, resize_threshold=(0,0), margin=0, spacing=-1):
         super(FlowLayout, self).__init__(parent)
         if parent is not None:
@@ -542,7 +477,12 @@ class FlowLayout(QLayout):
         while item:
             item = self.takeAt(0)
 
+    def insertWidgetAt(self, index, widget):
+        self.addWidget(widget)
+        self.itemList.insert(index, self.itemList.pop(-1))
+
     def addItem(self, item):
+        print(type(item))
         self.itemList.append(item)
 
     def count(self):

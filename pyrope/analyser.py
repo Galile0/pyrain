@@ -4,17 +4,18 @@ class Analyser:
         if not replay.netstream:
             raise TypeError("Replay has to be decoded")
         self.replay = replay
-        self.player = {}
+        self.player = self._get_player()
 
-    def get_player(self):  # Todo add check that frames are actually parsed
+    def _get_player(self):  # Todo add check that frames are actually parsed
+        player = {}
         for frame in self.replay.netstream.values():
             for name, value in frame.actors.items():
                 if "e_Default__PRI_TA" in name:
                     try:
-                        self.player[value['data']['Engine.PlayerReplicationInfo:PlayerName']] = value['actor_id']
+                        player[value['data']['Engine.PlayerReplicationInfo:PlayerName']] = value['actor_id']
                     except KeyError:
                         pass
-        return self.player
+        return player
 
     def get_player_pos(self, player, sep=False):
         playerid = self.player[player]
@@ -58,8 +59,9 @@ class Analyser:
             slice_frames.append(frame_left - frame_entered)
             lastframe = 0
             for framenum in slice_frames:
-                result.append({'start': lastframe,
-                               'end': framenum,
+                result.append({'player': player,
+                               'start': self.replay.netstream[lastframe].current,
+                               'end': self.replay.netstream[framenum].current,
                                'data': car_actors[lastframe:framenum]})
                 lastframe = framenum
         else:
@@ -79,4 +81,22 @@ class Analyser:
                         result.append(pos)
                     except KeyError:
                         pass
+        return result
+
+
+class AnalyserUtils:
+    @staticmethod
+    def filter_coords(coords):
+        result = []
+        for i, coord in enumerate(coords):
+            y = [x for x, y, z in coord['data'] if z > 15 and -5120 <= y <= 5120 and -4096 <= x <= 4096]
+            x = [y for x, y, z in coord['data'] if z > 15 and -5120 <= y <= 5120 and -4096 <= x <= 4096]
+            if not x and y:
+                raise ValueError('No points found')
+            title = "Player %s Start: %d End: %d" % (coord['player'], coord['start'], coord['end'])
+            title_short = "%s [%d - %d]" % (coord['player'], coord['start'], coord['end'])
+            result.append({'x': x,
+                           'y': y,
+                           'title': title,
+                           'title_short': title_short})
         return result

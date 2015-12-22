@@ -1,10 +1,10 @@
 import copy
 
 from matplotlib.colors import LogNorm
-from mpl_toolkits.mplot3d import Axes3D
+from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 import numpy as np
-import math
+
 
 stadium = [(x + 100 if x > 0 else x - 100, y + 100 if y > 0 else y - 100) for x, y in
            [(2646, 5097), (2576, 5101), (-2512, 5101), (-2571, 5100), (-2641, 5097), (-2711, 5089), (-2837, 5060),
@@ -24,58 +24,6 @@ stadium = [(x + 100 if x > 0 else x - 100, y + 100 if y > 0 else y - 100) for x,
 # -5120 - 5120; -4096,4096; 19, 2000
 # bins for ~1:1 mapping:87x100x62
 
-
-def heat_2d(coords, draw_map=True, bins=(5, 4), hexbin=False):
-    fig = plt.figure()
-    col = 1
-    row = 1
-    col_max = 6
-    use_sq = False
-    entrys = len(coords)
-    if entrys > 12:
-        use_sq = True
-        sq = math.ceil(math.sqrt(len(coords)))
-    elif entrys > col_max:
-            row = 2
-            col = 6
-    elif entrys > col:
-            col = entrys
-    all_data = 0
-    for i, coord in enumerate(coords):
-        x = [x for x, y, z in coord if z > 15 and -5120 <= y <= 5120 and -4096 <= x <= 4096]
-        y = [y for x, y, z in coord if z > 15 and -5120 <= y <= 5120 and -4096 <= x <= 4096]
-        if not filter:
-            continue
-        if use_sq:
-            ax = plt.subplot(sq*100+sq*10+1+i)
-        else:
-            ax = plt.subplot(row*100+col*10+1+i)
-        all_data += len(x)
-        print("Building Heatmap %d with %d Data Points" % (i, len(x)))
-        plt.xlim((4596, -4596))
-        plt.ylim((5520, -5520))
-        if not hexbin:
-            heatmap, xedges, yedges = np.histogram2d(y, x, bins=(13, 10), range=[(-5520, 5520), (-4596, 4596)])
-            extent = [yedges[0], yedges[-1], xedges[-1], xedges[0]]
-            my_cmap = copy.copy(plt.cm.get_cmap('jet')) # copy the default cmap
-            my_cmap.set_bad((0, 0, 1))
-            cax = ax.imshow(heatmap, extent=extent, aspect=1.206, norm=LogNorm(), cmap=my_cmap)  # Draw heatmap
-            fig.colorbar(cax)
-            # ax.hist2d(x, y, bins=(26, 20), normed=LogNorm, range=[(-4596,4596),(-5520,5520)])
-            # ax.set_aspect(1.206)
-        else:
-            x.extend([-4596, 4596, 4596, -4596])
-            y.extend([5520, 5520, -5520, -5520])
-            cax = ax.hexbin(x, y, cmap=plt.cm.jet, gridsize=(13, 10), norm=LogNorm()) #oder bins='log'?
-            ax.set_aspect(1.206)
-            fig.colorbar(cax)
-        if draw_map:
-            ax.plot(*zip(*stadium), c='r')
-        # ax.axis('off')
-
-    print("OVERALL POINTS", all_data)
-    # fig.subplots_adjust(hspace=0.05, wspace=0.05, right=0.995, left=0.005, top=1, bottom=0)
-    plt.show()
 
 def graph_2d(coords):
     for i, actor in enumerate(coords.values()):
@@ -101,3 +49,42 @@ def heat_3d():
     x, y, z = zip(*points_h)
     plot.plot(y, x, z)
     plt.show()
+
+
+def generate_figure(data, draw_map=True, bins=(15, 12), hexbin=False, interpolate=True):
+    fig = Figure()
+    ax = fig.add_subplot(111)
+    y = data['x']
+    x = data['y']
+    print("Building Heatmap %s with %d Data Points" % (data['title_short'], len(x))) # TODO MOVE TO TXT_LOG
+    ax.set_ylim((-4416, 4416))
+    ax.set_xlim((-5520, 5520))
+    my_cmap = copy.copy(plt.cm.get_cmap('jet'))
+    my_cmap.set_bad((0, 0, 1))
+    if not hexbin:
+        if interpolate:
+            interpolate = 'bilinear'
+        else:
+            interpolate = 'none'
+        bins = (bins[1], bins[0])
+        heatmap, xedges, yedges = np.histogram2d(y, x, bins=bins, range=[(-4416, 4416), (-5520, 5520)])
+        extent = [yedges[0], yedges[-1], xedges[-1], xedges[0]]
+        ax.imshow(heatmap, extent=extent, norm=LogNorm(), cmap=my_cmap, interpolation=interpolate)
+    else:
+        ax.hexbin(x, y, cmap=my_cmap, gridsize=bins, norm=LogNorm(), extent=[-5520, 5520, 4416,-4416])
+    if draw_map:
+        x = [y for x, y in stadium]
+        y = [x for x, y in stadium]
+        ax.plot(x, y, c='r')
+    ax.text(0.1, 0, 'Team 1',
+            transform=ax.transAxes,
+            bbox=dict(facecolor='white'))
+    ax.text(0.9, 0, 'Team 0',
+            horizontalalignment='right',
+            transform=ax.transAxes,
+            bbox=dict(facecolor='white'))
+    ax.set_title(data['title'], bbox=dict(facecolor='white'))
+    ax.axis('off')
+    fig.subplots_adjust(hspace=0, wspace=0, right=0.98, top=0.9, bottom=0.05, left=0.012)
+    fig.patch.set_visible(False)
+    return fig
