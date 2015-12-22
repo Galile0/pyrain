@@ -58,10 +58,15 @@ class Analyser:
             slice_frames.append(frame_left - frame_entered)
             lastframe = 0
             for framenum in slice_frames:
-                result.append(car_actors[lastframe:framenum])
+                result.append({'start': lastframe,
+                               'end': framenum,
+                               'data': car_actors[lastframe:framenum]})
                 lastframe = framenum
         else:
-            result.append(car_actors[:-1])
+            result.append({'player': player,
+                           'start': self.replay.netstream[frame_entered].current,
+                           'end': self.replay.netstream[frame_left].current,
+                           'data': car_actors[:-1]})
         return result
 
     def get_ball_pos(self):

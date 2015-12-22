@@ -87,6 +87,7 @@ class PyRainGui(QMainWindow):
 
         self.heatmapview = QWidget()
         self.heatmapview.setEnabled(False)
+        self.heatmapview.setMinimumSize(QSize(0, 290))
         tabview.addTab(self.heatmapview, "Heatmaps")
         self.setup_heatmapview(self.heatmapview)
 
@@ -140,11 +141,12 @@ class PyRainGui(QMainWindow):
 
         # PLOTTING AREA
         hm_sa = QScrollArea(self.heatmapview)
+        hm_sa.setMinimumWidth(330)
         hm_sa.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         hm_sa.setWidgetResizable(True)
 
         hm_sac = QWidget()
-        self.hm_sacl = FlowLayout(hm_sac, container=hm_sa, resize_threshold=(-20, -5))
+        self.hm_sacl = FlowLayout(hm_sac, container=hm_sa, resize_threshold=(-20, -10))
         hm_sa.setWidget(hm_sac)
 
         hzl_1.addWidget(hm_sa)
@@ -323,12 +325,12 @@ class PyRainGui(QMainWindow):
         slicing = True
         if self.cmb_slicing.currentText() == 'None':
             slicing = False
-        coords = self.analyser.get_player_pos(player, slicing)
-        hm_list = self.generate_figures(coords)
+        data = self.analyser.get_player_pos(player, slicing)
+        hm_list = self.generate_figures(data, player)
         for hm in hm_list:
             fig = FigureCanvas(hm)
-            fig.setMinimumSize(QSize(200, 160))
-            fig.setMaximumSize(QSize(800, 640))
+            fig.setMinimumSize(QSize(335, 268))
+            fig.setMaximumSize(QSize(550, 440))
             fig.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
             self.hm_sacl.addWidget(fig)
 
@@ -399,42 +401,52 @@ class PyRainGui(QMainWindow):
         self.cmb_player.clear()
         self.cmb_player.insertItems(0, [k for k in self.analyser.get_player().keys()])
 
-    def generate_figures(self, coords, draw_map=True, bins=(13, 10), hexbin=True):
+    def generate_figures(self, coords, draw_map=True, bins=(15, 12), hexbin=False, interpolate=True):
         all_data = 0
         figures = []
         for i, coord in enumerate(coords):
             fig = Figure()
             ax = fig.add_subplot(111)
-            y = [x for x, y, z in coord if z > 15 and -5120 <= y <= 5120 and -4096 <= x <= 4096]
-            x = [y for x, y, z in coord if z > 15 and -5120 <= y <= 5120 and -4096 <= x <= 4096]
+            y = [x for x, y, z in coord['data'] if z > 15 and -5120 <= y <= 5120 and -4096 <= x <= 4096]
+            x = [y for x, y, z in coord['data'] if z > 15 and -5120 <= y <= 5120 and -4096 <= x <= 4096]
             if not x and not y:
                 continue
             all_data += len(x)
             print("Building Heatmap %d with %d Data Points" % (i, len(x)))
-            ax.set_ylim((4596, -4596))
-            ax.set_xlim((5520, -5520))
+            ax.set_ylim((-4416, 4416))
+            ax.set_xlim((-5520, 5520))
+            my_cmap = copy.copy(plt.cm.get_cmap('jet')) # copy the default cmap
+            my_cmap.set_bad((0, 0, 1))
             if not hexbin:
-                heatmap, xedges, yedges = np.histogram2d(y, x, bins=bins, range=[(-5520, 5520), (-4596, 4596)])
+                if interpolate:
+                    interpolate='bilinear'
+                else:
+                    interpolate='none'
+                bins = (bins[1], bins[0])
+                heatmap, xedges, yedges = np.histogram2d(y, x, bins=bins, range=[(-4416, 4416), (-5520, 5520)])
                 extent = [yedges[0], yedges[-1], xedges[-1], xedges[0]]
-                my_cmap = copy.copy(plt.cm.get_cmap('jet')) # copy the default cmap
-                my_cmap.set_bad((0, 0, 1))
-                cax = ax.imshow(heatmap, extent=extent, aspect=0.8, norm=LogNorm(), cmap=my_cmap)  # Draw heatmap
-                # self.fig.colorbar(cax)
+                ax.imshow(heatmap, extent=extent, norm=LogNorm(), cmap=my_cmap, interpolation=interpolate)
                 # ax.hist2d(x, y, bins=(26, 20), normed=LogNorm, range=[(-4596,4596),(-5520,5520)])
                 # ax.set_aspect(0.8)
             else:
-                y.extend([-4596, 4596, 4596, -4596])
-                x.extend([5520, 5520, -5520, -5520])
-                ax.hexbin(x, y, cmap=plt.cm.jet, gridsize=bins, norm=LogNorm()) #oder bins='log'?
-                ax.set_aspect(0.8)
-                # self.axes.plot()
-                # self.fig.colorbar(cax)
+                # ax.set_aspect(0.8)
+                ax.hexbin(x, y, cmap=my_cmap, gridsize=bins, norm=LogNorm(), extent=[-5520, 5520, 4416,-4416])
             if draw_map:
                 x = [y for x, y in stadium]
                 y = [x for x, y in stadium]
                 ax.plot(x, y, c='r')
-            # ax.axis('off')
-            # fig.subplots_adjust(hspace=0, wspace=0, right=0.99, left=0.1)
+            ax.text(0.1, 0, 'Team 1',
+                    transform=ax.transAxes,
+                    bbox=dict(facecolor='white'))
+            ax.text(0.9, 0, 'Team 0',
+                    horizontalalignment='right',
+                    transform=ax.transAxes,
+                    bbox=dict(facecolor='white'))
+            ax.set_title("Player %s Start: %d End: %d" % (coord['player'], coord['start'], coord['end']),
+                         bbox=dict(facecolor='white'))
+            ax.axis('off')
+            fig.subplots_adjust(hspace=0, wspace=0, right=0.98, top=0.9, bottom=0.05, left=0.012)
+            fig.patch.set_visible(False)
             figures.append(fig)
         print("OVERALL POINTS", all_data)
         return figures
