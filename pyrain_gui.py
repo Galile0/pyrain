@@ -139,21 +139,15 @@ class PyRainGui(QMainWindow):
         hzl_1.addWidget(box_controls)
 
         # PLOTTING AREA
-        mpl_scrollarea = QScrollArea(self.heatmapview)
-        # mpl_scrollarea.setSizePolicy(QSizePolicy(QSizePolicy.MinimumExpanding,
-        #                                          QSizePolicy.MinimumExpanding))
-        mpl_scrollarea.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        mpl_scrollarea.setWidgetResizable(True)
-        self.mpl_content = QWidget()
-        self.mpl_content.setMinimumSize(QSize(400, 320))
-        self.mpl_content.setSizePolicy(QSizePolicy(QSizePolicy.MinimumExpanding,
-                                       QSizePolicy.MinimumExpanding))
+        hm_sa = QScrollArea(self.heatmapview)
+        hm_sa.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        hm_sa.setWidgetResizable(True)
 
-        self.mpl_l = FlowLayout(self.mpl_content)
-        self.mpl_l.setSizeConstraint(QLayout.SetMinAndMaxSize)
+        hm_sac = QWidget()
+        self.hm_sacl = FlowLayout(hm_sac, container=hm_sa, resize_threshold=(-20, -5))
+        hm_sa.setWidget(hm_sac)
 
-        mpl_scrollarea.setWidget(self.mpl_content)
-        hzl_1.addWidget(mpl_scrollarea)
+        hzl_1.addWidget(hm_sa)
 
     def setup_toolbar(self):
         toolbar = QToolBar(self)
@@ -333,15 +327,10 @@ class PyRainGui(QMainWindow):
         hm_list = self.generate_figures(coords)
         for hm in hm_list:
             fig = FigureCanvas(hm)
-            fig.setMinimumSize(QSize(400, 320))
-            # fig.setMaximumSize(QSize(600, 480))
-            fig.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
-            print('CONTENT1', self.mpl_content.sizeHint())
-            print('FIGURE', fig.sizeHint())
-
-            self.mpl_l.addWidget(fig)
-            print('CONTENT2', self.mpl_content.sizeHint())
-        # self.mpl_scrollarea.setWidget(self.mpl_content)
+            fig.setMinimumSize(QSize(200, 160))
+            fig.setMaximumSize(QSize(800, 640))
+            fig.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
+            self.hm_sacl.addWidget(fig)
 
     def show_open_file(self):
         home = path.expanduser('~')
@@ -521,13 +510,20 @@ class ThreadedImport(QThread):
     def setstop(self):
         self.stop.set()
 
+
 class FlowLayout(QLayout):
-    def __init__(self, parent=None, margin=0, spacing=-1):
+    # TODO SHIT GETS LAGGY WITH LOTS OF MPL Figures
+    # TODO ASPECT RATIO IS HARDCODED. BETTER TAKE IT FROM WIDGETS WidthForHeight (would subclassing)
+    def __init__(self, parent=None, container=None, resize_threshold=(0,0), margin=0, spacing=-1):
         super(FlowLayout, self).__init__(parent)
         if parent is not None:
             self.setContentsMargins(margin, margin, margin, margin)
         self.setSpacing(spacing)
         self.itemList = []
+        self.container = parent
+        if container:
+            self.container = container
+        self.resize_threshold = resize_threshold
 
     def __del__(self):
         item = self.takeAt(0)
@@ -541,14 +537,13 @@ class FlowLayout(QLayout):
         return len(self.itemList)
 
     def itemAt(self, index):
-        if 0 <= index < len(self.itemList):
+        if index >= 0 and index < len(self.itemList):
             return self.itemList[index]
         return None
 
     def takeAt(self, index):
-        if 0 <= index < len(self.itemList):
+        if index >= 0 and index < len(self.itemList):
             return self.itemList.pop(index)
-
         return None
 
     def expandingDirections(self):
@@ -580,23 +575,29 @@ class FlowLayout(QLayout):
         x = rect.x()
         y = rect.y()
         lineHeight = 0
+
         for item in self.itemList:
             wid = item.widget()
             spaceX = self.spacing() + wid.style().layoutSpacing(QSizePolicy.PushButton, QSizePolicy.PushButton, Qt.Horizontal)
             spaceY = self.spacing() + wid.style().layoutSpacing(QSizePolicy.PushButton, QSizePolicy.PushButton, Qt.Vertical)
-            nextX = x + item.sizeHint().width() + spaceX
+            nextX = x + item.geometry().width() + spaceX
+            cont_width = self.container.geometry().width()+self.resize_threshold[0]
+            cont_height = self.container.geometry().height()+self.resize_threshold[1]
             if nextX - spaceX > rect.right() and lineHeight > 0:
                 x = rect.x()
                 y = y + lineHeight + spaceY
-                nextX = x + item.sizeHint().width() + spaceX
+                nextX = x + item.geometry().width() + spaceX
                 lineHeight = 0
-            if not testOnly:
-                if self.geometry().width()<item.sizeHint().width():
-                    item.setGeometry(QRect(QPoint(x, y), QPoint(self.geometry().width(), 0.8*self.geometry().width())))
-                else:
-                    item.setGeometry(QRect(QPoint(x, y), item.sizeHint()))
+            adjust_height = False
+            if cont_width*0.8 >= cont_height: adjust_height=True
+            if cont_width >= item.maximumSize().width() and cont_height >= item.maximumSize().height():
+                item.setGeometry(QRect(x, y, item.maximumSize().width(), item.maximumSize().height()))
+            elif adjust_height and cont_height <= item.maximumSize().height():
+                item.setGeometry(QRect(x, y, 1.25*cont_height, cont_height))
+            else:
+                item.setGeometry(QRect(x, y, cont_width, 0.8*cont_width))
             x = nextX
-            lineHeight = max(lineHeight, item.sizeHint().height())
+            lineHeight = max(lineHeight, item.geometry().height())
         return y + lineHeight - rect.y()
 
 
