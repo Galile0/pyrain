@@ -51,16 +51,20 @@ def heat_3d():
     plt.show()
 
 
-def generate_figure(data, draw_map=True, bins=(15, 12), hexbin=False, interpolate=True):
+def generate_figure(data, draw_map=True, bins=(15, 12), hexbin=False, interpolate=True, norm=False):
     fig = Figure()
     ax = fig.add_subplot(111)
-    y = data['x']
-    x = data['y']
+    x = data['x']
+    y = data['y']
     print("Building Heatmap %s with %d Data Points" % (data['title_short'], len(x))) # TODO MOVE TO TXT_LOG
     ax.set_ylim((-4416, 4416))
     ax.set_xlim((-5520, 5520))
     my_cmap = copy.copy(plt.cm.get_cmap('jet'))
     my_cmap.set_bad((0, 0, 1))
+    if norm:
+        norm=LogNorm()
+    else:
+        norm=None
     if not hexbin:
         if interpolate:
             interpolate = 'bilinear'
@@ -69,9 +73,9 @@ def generate_figure(data, draw_map=True, bins=(15, 12), hexbin=False, interpolat
         bins = (bins[1], bins[0])
         heatmap, xedges, yedges = np.histogram2d(y, x, bins=bins, range=[(-4416, 4416), (-5520, 5520)])
         extent = [yedges[0], yedges[-1], xedges[-1], xedges[0]]
-        ax.imshow(heatmap, extent=extent, norm=LogNorm(), cmap=my_cmap, interpolation=interpolate)
+        ax.imshow(heatmap, extent=extent, norm=norm, cmap=my_cmap, interpolation=interpolate)
     else:
-        ax.hexbin(x, y, cmap=my_cmap, gridsize=bins, norm=LogNorm(), extent=[-5520, 5520, 4416, -4416])
+        ax.hexbin(x, y, cmap=my_cmap, gridsize=bins, norm=norm, extent=[-5520, 5520, 4416, -4416])
     if draw_map:
         x = [y for x, y in stadium]
         y = [x for x, y in stadium]

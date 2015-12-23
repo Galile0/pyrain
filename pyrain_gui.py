@@ -11,6 +11,7 @@ from collections import OrderedDict
 from io import StringIO
 from time import sleep
 
+import math
 from PyQt5.QtCore import QSize, Qt, QRect, QThread, pyqtSignal, QPoint
 from PyQt5.QtWidgets import (QSizePolicy, QWidget, QVBoxLayout, QTabWidget, QPlainTextEdit, QGridLayout, QListWidget,
                              QSpacerItem, QHBoxLayout, QScrollArea, QLayout, QToolBar, QLabel, QComboBox, QPushButton, QMenuBar, QMenu, QAction,
@@ -111,16 +112,15 @@ class PyRainGui(QMainWindow):
         hzl_1.addWidget(box_controls)
 
         # PLOTTING AREA
-        hm_sa = QScrollArea(self.heatmapview)
-        hm_sa.setMinimumWidth(330)
-        hm_sa.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        hm_sa.setWidgetResizable(True)
+        self.hm_sa = QScrollArea(tab)
+        self.hm_sa.setMinimumWidth(330)
+        self.hm_sa.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.hm_sa.setWidgetResizable(True)
 
         hm_sac = QWidget()
         self.hm_sacl = FlowLayout(hm_sac, container=hm_sa, resize_threshold=(-20, -10))
-        hm_sa.setWidget(hm_sac)
-
-        hzl_1.addWidget(hm_sa)
+        self.hm_sa.setWidget(hm_sac)
+        hzl_1.addWidget(self.hm_sa)
 
     def setup_toolbar(self):
         toolbar = QToolBar(self)
@@ -287,6 +287,9 @@ class PyRainGui(QMainWindow):
 
         self.sld_res = QSlider(frm_settings)
         self.sld_res.setOrientation(Qt.Horizontal)
+        self.sld_res.setMinimum(1)
+        self.sld_res.setMaximum(50)
+        self.sld_res.setValue(10)
         gl_settings.addWidget(self.sld_res, 3, 0, 1, 4)
 
         return frm_settings
@@ -325,17 +328,34 @@ class PyRainGui(QMainWindow):
         if not items:
             return
         items_text = [item.text() for item in items]
+        scale = self.sld_res.value()/10
+        bins = (math.ceil(scale*15), math.ceil(scale*12))
+        log = self.chk_logscale.isChecked()
+        plt_type = self.cmb_style.currentText()
+        interpolate = False
+        if plt_type == 'Hexbin':
+            hexbin=True
+        else:
+            hexbin=False
+        if 'Blur' in plt_type:
+            interpolate=True
         for item in items_text:
-            plot = plotter.generate_figure(self.datasets[item])
-            frm = QFrame()
+            plot = plotter.generate_figure(self.datasets[item],
+                                           bins=bins,
+                                           norm=log,
+                                           interpolate=interpolate,
+                                           hexbin=hexbin)
+            frm = QFrame(self.hm_sac)
             frm.setContentsMargins(0, 0, 0, 0)
-            frm.setMinimumSize(QSize(335, 268))
-            frm.setMaximumSize(QSize(550, 440))
+            frm.setMinimumSize(QSize(300, 240))
+            frm.setMaximumSize(QSize(515, 412))
             frm.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
             frm.setLineWidth(3)
             frml = QVBoxLayout(frm)
             frml.setContentsMargins(0, 0, 0, 0)
             fig = FigureCanvas(plot)
+            fig.mpl_connect('scroll_event', lambda evt: self.hm_sa.verticalScrollBar().setValue(
+                    self.hm_sa.verticalScrollBar().value()+int(evt.step)*-60)) # TODO Well, it works <.<
             fig.setContentsMargins(0, 0, 0, 0)
             frml.addWidget(fig)
             self.hm_sacl.addWidget(frm)
