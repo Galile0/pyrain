@@ -203,14 +203,14 @@ class PyRainGui(QMainWindow):
         gl_controls.setHorizontalSpacing(0)
 
         frm_settings = self.setup_settings(box_controls)
-        gl_controls.addWidget(frm_settings, 1, 0, 1, 3)
+        gl_controls.addWidget(frm_settings, 1, 0, 1, 6)
 
         lbl_plots = QLabel(box_controls)
         size_policy = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
         size_policy.setHeightForWidth(lbl_plots.sizePolicy().hasHeightForWidth())
         lbl_plots.setSizePolicy(size_policy)
         lbl_plots.setText('Available Plots:')
-        gl_controls.addWidget(lbl_plots, 2, 0, 1, 3)
+        gl_controls.addWidget(lbl_plots, 2, 0, 1, 6)
 
         self.lst_plots = QListWidget(box_controls)
         self.lst_plots.setSelectionMode(QAbstractItemView.ExtendedSelection)
@@ -219,27 +219,33 @@ class PyRainGui(QMainWindow):
         self.lst_plots.setSizePolicy(size_policy)
         self.lst_plots.setMinimumSize(QSize(0, 50))
         self.lst_plots.setMaximumSize(QSize(16777215, 200))
-        gl_controls.addWidget(self.lst_plots, 3, 0, 1, 3)
+        gl_controls.addWidget(self.lst_plots, 3, 0, 1, 6)
 
         self.btn_addplot = QPushButton(box_controls)
         self.btn_addplot.setText('Add')
-        gl_controls.addWidget(self.btn_addplot, 4, 0, 1, 1)
+        gl_controls.addWidget(self.btn_addplot, 4, 0, 1, 2)
 
         self.btn_removeplot = QPushButton(box_controls)
         self.btn_removeplot.setText('Delete')
-        gl_controls.addWidget(self.btn_removeplot, 4, 1, 1, 1)
+        self.btn_removeplot.setEnabled(False)
+        gl_controls.addWidget(self.btn_removeplot, 4, 2, 1, 2)
+
+        self.btn_updateplot = QPushButton(box_controls)
+        self.btn_updateplot.setText('Update')
+        self.btn_updateplot.setEnabled(False)
+        gl_controls.addWidget(self.btn_updateplot, 4, 4, 1, 2)
 
         self.btn_clearplot = QPushButton(box_controls)
         self.btn_clearplot.setText('Clear')
-        gl_controls.addWidget(self.btn_clearplot, 4, 2, 1, 1)
+        gl_controls.addWidget(self.btn_clearplot, 5, 0, 1, 3)
 
         self.btn_popout = QPushButton(box_controls)
-        self.btn_popout.setText('Popout to new window')
-        gl_controls.addWidget(self.btn_popout, 5, 0, 1, 3)
+        self.btn_popout.setText('Popout')
+        gl_controls.addWidget(self.btn_popout, 5, 3, 1, 3)
 
         self.btn_saveimage = QPushButton(box_controls)
         self.btn_saveimage.setText('Save as image')
-        gl_controls.addWidget(self.btn_saveimage, 6, 0, 1, 3)
+        gl_controls.addWidget(self.btn_saveimage, 6, 0, 1, 6)
 
         spc_5 = QSpacerItem(20, 2, QSizePolicy.Minimum, QSizePolicy.MinimumExpanding)
         gl_controls.addItem(spc_5)
@@ -291,7 +297,7 @@ class PyRainGui(QMainWindow):
         self.btn_removeplot.clicked.connect(lambda: self.handle_plot('remove'))
         self.btn_addplot.clicked.connect(lambda: self.handle_plot('add'))
         self.btn_clearplot.clicked.connect(lambda: self.handle_plot('clear'))
-        self.lst_plots.itemSelectionChanged.connect(lambda: self.handle_plot('None'))
+        self.lst_plots.itemSelectionChanged.connect(self.highlight_plots)
 
     def handle_plot(self, action):
         if action == 'clear':
@@ -300,10 +306,8 @@ class PyRainGui(QMainWindow):
                 if child is not None:
                     child.widget().deleteLater()
             return
-        # item = self.lst_plots.currentItem()
         items = self.lst_plots.selectedItems()
         if not items:
-            print("No Item Selected")
             return
         items_text = [item.text() for item in items]
         for item in items_text:
@@ -331,13 +335,25 @@ class PyRainGui(QMainWindow):
                     self.drawn_plots[item].append(frm)
                 else:
                     self.drawn_plots[item] = [frm]
+        self.highlight_plots()
+
+    def highlight_plots(self):
+        items = self.lst_plots.selectedItems()
+        if not items:
+            print("No Item Selected")
+            return
+        items_text = [item.text() for item in items]
+        enable_btn = False
         for name, widgetlist in self.drawn_plots.items():
             if name in items_text:
                 for fig in widgetlist:
                     fig.setFrameStyle(0x11)
+                enable_btn = True
             else:
                 for fig in widgetlist:
                     fig.setFrameStyle(0x00)
+        self.btn_removeplot.setEnabled(enable_btn)
+        self.btn_updateplot.setEnabled(enable_btn)
 
     def save_replay(self):
         folder = path.dirname(path.realpath(__file__))
@@ -528,7 +544,6 @@ class FlowLayout(QLayout):
         self.itemList.insert(index, self.itemList.pop(-1))
 
     def addItem(self, item):
-        print(type(item))
         self.itemList.append(item)
 
     def count(self):
