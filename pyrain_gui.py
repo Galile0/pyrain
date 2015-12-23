@@ -220,20 +220,20 @@ class PyRainGui(QMainWindow):
         self.lst_plots.setMaximumSize(QSize(16777215, 200))
         gl_controls.addWidget(self.lst_plots, 3, 0, 1, 6)
 
-        btn_addplot = QPushButton(box_controls)
-        btn_addplot.setText('Add')
-        btn_addplot.setEnabled(False)
-        gl_controls.addWidget(btn_addplot, 4, 0, 1, 2)
+        self.btn_addplot = QPushButton(box_controls)
+        self.btn_addplot.setText('Add')
+        self.btn_addplot.setEnabled(False)
+        gl_controls.addWidget(self.btn_addplot, 4, 0, 1, 2)
 
-        btn_removeplot = QPushButton(box_controls)
-        btn_removeplot.setText('Delete')
-        btn_removeplot.setEnabled(False)
-        gl_controls.addWidget(btn_removeplot, 4, 2, 1, 2)
+        self.btn_removeplot = QPushButton(box_controls)
+        self.btn_removeplot.setText('Delete')
+        self.btn_removeplot.setEnabled(False)
+        gl_controls.addWidget(self.btn_removeplot, 4, 2, 1, 2)
 
-        btn_updateplot = QPushButton(box_controls)
-        btn_updateplot.setText('Update')
-        btn_updateplot.setEnabled(False)
-        gl_controls.addWidget(btn_updateplot, 4, 4, 1, 2)
+        self.btn_updateplot = QPushButton(box_controls)
+        self.btn_updateplot.setText('Update')
+        self.btn_updateplot.setEnabled(False)
+        gl_controls.addWidget(self.btn_updateplot, 4, 4, 1, 2)
 
         btn_clearplot = QPushButton(box_controls)
         btn_clearplot.setText('Clear')
@@ -250,8 +250,8 @@ class PyRainGui(QMainWindow):
         spc_5 = QSpacerItem(20, 2, QSizePolicy.Minimum, QSizePolicy.MinimumExpanding)
         gl_controls.addItem(spc_5)
 
-        btn_removeplot.clicked.connect(self.remove_plots)
-        btn_addplot.clicked.connect(self.create_plots)
+        self.btn_removeplot.clicked.connect(self.remove_plots)
+        self.btn_addplot.clicked.connect(self.create_plots)
         btn_clearplot.clicked.connect(self.clear_plots)
 
         return box_controls
@@ -308,8 +308,7 @@ class PyRainGui(QMainWindow):
         for i in range(count):
             item_name = self.lst_plots.item(i).text()
             if item_name in self.drawn_plots:
-                for widget in self.drawn_plots[item_name]:
-                    widget.deleteLater()
+                self.drawn_plots[item_name].deleteLater()
                 del self.drawn_plots[item_name]
 
     def remove_plots(self):
@@ -318,11 +317,8 @@ class PyRainGui(QMainWindow):
             return
         items_text = [item.text() for item in items]
         for item in items_text:
-            if item not in self.drawn_plots:
-                print("No Instances of %s found" % item)
-            else:
-                for widget in self.drawn_plots[item]:
-                    widget.deleteLater()
+            if item in self.drawn_plots:
+                self.drawn_plots[item].deleteLater()
                 del self.drawn_plots[item]
         self.highlight_plots()
 
@@ -330,7 +326,7 @@ class PyRainGui(QMainWindow):
         items = self.lst_plots.selectedItems()
         if not items:
             return
-        items_text = [item.text() for item in items]
+        items_text = [item.text() for item in items if item.text() not in self.drawn_plots]
         scale = self.sld_res.value()/10
         bins = (math.ceil(scale*15), math.ceil(scale*12))
         log = self.chk_logscale.isChecked()
@@ -362,28 +358,30 @@ class PyRainGui(QMainWindow):
             fig.setContentsMargins(0, 0, 0, 0)
             frml.addWidget(fig)
             self.hm_sacl.addWidget(frm)
-            if item in self.drawn_plots:
-                self.drawn_plots[item].append(frm)
-            else:
-                self.drawn_plots[item] = [frm]
+            self.drawn_plots[item] = frm
         self.highlight_plots()
 
     def highlight_plots(self):
-        items = self.lst_plots.selectedItems()
-        items_text = []
-        if items:
-            items_text = [item.text() for item in items]
-        enable_btn = False
-        for name, widgetlist in self.drawn_plots.items():
-            if name in items_text:
-                for fig in widgetlist:
-                    fig.setFrameStyle(0x11)
-                enable_btn = True
+        selected_plots = self.lst_plots.selectedItems()
+        plot_names = []
+        if selected_plots:
+            plot_names = [plot.text() for plot in selected_plots]
+        else:
+            return
+        enable_btn_mod = False
+        enable_add = False
+        for name, widget in self.drawn_plots.items():
+            if name in plot_names:
+                widget.setFrameStyle(0x11)
+                enable_btn_mod = True
+                plot_names.remove(name)
             else:
-                for fig in widgetlist:
-                    fig.setFrameStyle(0x00)
-        self.btn_removeplot.setEnabled(enable_btn)
-        self.btn_updateplot.setEnabled(enable_btn)
+                widget.setFrameStyle(0x00)
+        self.btn_removeplot.setEnabled(enable_btn_mod)
+        self.btn_updateplot.setEnabled(enable_btn_mod)
+        if plot_names:
+            enable_add=True
+        self.btn_addplot.setEnabled(enable_add)
 
     def save_replay(self):
         folder = path.dirname(path.realpath(__file__))
