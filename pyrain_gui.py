@@ -252,6 +252,7 @@ class PyRainGui(QMainWindow):
 
         self.btn_removeplot.clicked.connect(self.remove_plots)
         self.btn_addplot.clicked.connect(self.create_plots)
+        self.btn_updateplot.clicked.connect(self.update_plots)
         btn_clearplot.clicked.connect(self.clear_plots)
 
         return box_controls
@@ -321,6 +322,10 @@ class PyRainGui(QMainWindow):
                 self.drawn_plots[item].deleteLater()
                 del self.drawn_plots[item]
         self.highlight_plots()
+
+    def update_plots(self):
+        self.remove_plots()
+        self.create_plots()
 
     def create_plots(self):
         items = self.lst_plots.selectedItems()
