@@ -57,8 +57,8 @@ def generate_figure(data, draw_map=True, bins=(15, 12), hexbin=False, interpolat
     x = data['x']
     y = data['y']
     print("Building Heatmap %s with %d Data Points" % (data['title_short'], len(x))) # TODO MOVE TO TXT_LOG
-    ax.set_ylim((-4416, 4416))
-    ax.set_xlim((-5520, 5520))
+    # ax.set_ylim((-4416, 4416))
+    # ax.set_xlim((-5520, 5520))
     my_cmap = copy.copy(plt.cm.get_cmap('jet'))
     my_cmap.set_bad((0, 0, 1))
     if norm:
@@ -73,7 +73,9 @@ def generate_figure(data, draw_map=True, bins=(15, 12), hexbin=False, interpolat
         bins = (bins[1], bins[0])
         heatmap, xedges, yedges = np.histogram2d(y, x, bins=bins, range=[(-4416, 4416), (-5520, 5520)])
         extent = [yedges[0], yedges[-1], xedges[-1], xedges[0]]
-        ax.imshow(heatmap, extent=extent, norm=norm, cmap=my_cmap, interpolation=interpolate)
+        print(extent)
+        ax.imshow(heatmap, extent=extent, norm=norm, cmap=my_cmap, interpolation=interpolate, origin='upper', aspect='auto')
+        ax.autoscale(False)
     else:
         ax.hexbin(x, y, cmap=my_cmap, gridsize=bins, norm=norm, extent=[-5520, 5520, 4416, -4416])
     if draw_map:
