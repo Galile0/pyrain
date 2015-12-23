@@ -118,7 +118,7 @@ class PyRainGui(QMainWindow):
         self.hm_sa.setWidgetResizable(True)
 
         hm_sac = QWidget()
-        self.hm_sacl = FlowLayout(hm_sac, container=hm_sa, resize_threshold=(-20, -10))
+        self.hm_sacl = FlowLayout(hm_sac, container=self.hm_sa, resize_threshold=(-20, -10))
         self.hm_sa.setWidget(hm_sac)
         hzl_1.addWidget(self.hm_sa)
 
@@ -303,11 +303,13 @@ class PyRainGui(QMainWindow):
         self.lst_plots.itemSelectionChanged.connect(self.highlight_plots)
 
     def clear_plots(self):
-        while self.hm_sacl.count():
-            child = self.hm_sacl.takeAt(0)
-            if child is not None:
-                child.widget().deleteLater()
-        return
+        count = self.lst_plots.count()
+        for i in range(count):
+            item_name = self.lst_plots.item(i).text()
+            if item_name in self.drawn_plots:
+                for widget in self.drawn_plots[item_name]:
+                    widget.deleteLater()
+                del self.drawn_plots[item_name]
 
     def remove_plots(self):
         items = self.lst_plots.selectedItems()
@@ -345,7 +347,7 @@ class PyRainGui(QMainWindow):
                                            norm=log,
                                            interpolate=interpolate,
                                            hexbin=hexbin)
-            frm = QFrame(self.hm_sac)
+            frm = QFrame()
             frm.setContentsMargins(0, 0, 0, 0)
             frm.setMinimumSize(QSize(300, 240))
             frm.setMaximumSize(QSize(515, 412))
