@@ -93,7 +93,10 @@ class AnalyserUtils:
             x = [y for x, y, z in coord['data'] if z > 15 and -5120 <= y <= 5120 and -4096 <= x <= 4096]
             if not x and y:
                 raise ValueError('No points found')
-            title = "Player %s Start: %d End: %d" % (coord['player'], coord['start'], coord['end'])
+            player = coord['player']
+            if len(player) > 20:
+                player = player[0:9] + ' ... ' + player[-6:]
+            title = "%s From: %ds To: %ds" % (player, coord['start'], coord['end'])
             title_short = "%s [%d - %d]" % (coord['player'], coord['start'], coord['end'])
             result.append({'x': x,
                            'y': y,

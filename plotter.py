@@ -1,5 +1,5 @@
 import copy
-
+from textwrap import wrap
 from matplotlib.colors import LogNorm
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
@@ -85,6 +85,6 @@ def generate_figure(data, draw_map=True, bins=(15, 12), hexbin=False, interpolat
             bbox=dict(facecolor='white'))
     ax.set_title(data['title'], bbox=dict(facecolor='white'))
     ax.axis('off')
-    fig.subplots_adjust(hspace=0, wspace=0, right=0.98, top=0.9, bottom=0.05, left=0.012)
-    fig.patch.set_visible(False)
+    fig.subplots_adjust(hspace=0, wspace=0, right=0.995, top=0.9, bottom=0.05, left=0.005)
+    # fig.patch.set_visible(False)
     return fig
