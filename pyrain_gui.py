@@ -30,6 +30,7 @@ class PyRainGui(QMainWindow):
         self.replay = None
         self.analyser = None
         self.datasets = {}
+        self.drawn_plots = {}
 
     def setup_ui(self):
         self.resize(720, 552)
@@ -198,40 +199,49 @@ class PyRainGui(QMainWindow):
         box_controls.setMaximumSize(QSize(200, 16777215))
         box_controls.setAutoFillBackground(True)
 
-        vl_controls = QVBoxLayout(box_controls)
+        gl_controls = QGridLayout(box_controls)
+        gl_controls.setHorizontalSpacing(0)
 
         frm_settings = self.setup_settings(box_controls)
-        vl_controls.addWidget(frm_settings)
+        gl_controls.addWidget(frm_settings, 1, 0, 1, 3)
 
         lbl_plots = QLabel(box_controls)
         size_policy = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
         size_policy.setHeightForWidth(lbl_plots.sizePolicy().hasHeightForWidth())
         lbl_plots.setSizePolicy(size_policy)
         lbl_plots.setText('Available Plots:')
-        vl_controls.addWidget(lbl_plots)
+        gl_controls.addWidget(lbl_plots, 2, 0, 1, 3)
 
         self.lst_plots = QListWidget(box_controls)
         size_policy = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.MinimumExpanding)
         size_policy.setVerticalStretch(1)
-        size_policy.setHeightForWidth(self.lst_plots.sizePolicy().hasHeightForWidth())
         self.lst_plots.setSizePolicy(size_policy)
         self.lst_plots.setMinimumSize(QSize(0, 50))
         self.lst_plots.setMaximumSize(QSize(16777215, 200))
-        self.lst_plots.setFrameShape(QFrame.Box)
-        self.lst_plots.setFrameShadow(QFrame.Sunken)
-        self.lst_plots.setContextMenuPolicy(Qt.CustomContextMenu)
-        vl_controls.addWidget(self.lst_plots)
+        gl_controls.addWidget(self.lst_plots, 3, 0, 1, 3)
+
+        self.btn_addplot = QPushButton(box_controls)
+        self.btn_addplot.setText('Add')
+        gl_controls.addWidget(self.btn_addplot, 4, 0, 1, 1)
+
+        self.btn_removeplot = QPushButton(box_controls)
+        self.btn_removeplot.setText('Delete')
+        gl_controls.addWidget(self.btn_removeplot, 4, 1, 1, 1)
+
+        self.btn_clearplot = QPushButton(box_controls)
+        self.btn_clearplot.setText('Clear')
+        gl_controls.addWidget(self.btn_clearplot, 4, 2, 1, 1)
 
         self.btn_popout = QPushButton(box_controls)
         self.btn_popout.setText('Popout to new window')
-        vl_controls.addWidget(self.btn_popout)
+        gl_controls.addWidget(self.btn_popout, 5, 0, 1, 3)
 
         self.btn_saveimage = QPushButton(box_controls)
         self.btn_saveimage.setText('Save as image')
-        vl_controls.addWidget(self.btn_saveimage)
+        gl_controls.addWidget(self.btn_saveimage, 6, 0, 1, 3)
 
         spc_5 = QSpacerItem(20, 2, QSizePolicy.Minimum, QSizePolicy.MinimumExpanding)
-        vl_controls.addItem(spc_5)
+        gl_controls.addItem(spc_5)
 
         return box_controls
 
@@ -241,8 +251,8 @@ class PyRainGui(QMainWindow):
         frm_settings.setFrameShape(QFrame.Box)
         frm_settings.setFrameShadow(QFrame.Sunken)
 
-        grl_settings = QGridLayout(frm_settings)
-        grl_settings.setContentsMargins(-1, -1, -1, 2)
+        gl_settings = QGridLayout(frm_settings)
+        gl_settings.setContentsMargins(-1, -1, -1, 2)
 
         lbl_style = QLabel(frm_settings)
         size_policy = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
@@ -251,49 +261,66 @@ class PyRainGui(QMainWindow):
         size_policy.setHeightForWidth(lbl_style.sizePolicy().hasHeightForWidth())
         lbl_style.setSizePolicy(size_policy)
         lbl_style.setText('Style:')
-        grl_settings.addWidget(lbl_style, 0, 0, 1, 1)
+        gl_settings.addWidget(lbl_style, 0, 0, 1, 1)
 
         self.cmb_style = QComboBox(frm_settings)
         self.cmb_style.setAutoFillBackground(False)
         self.cmb_style.setEditable(False)
         self.cmb_style.insertItems(0, ['Hexbin', 'Histogram - Blur', 'Histogram - Clear'])
         self.cmb_style.setCurrentIndex(0)
-        grl_settings.addWidget(self.cmb_style, 0, 1, 1, 3)
+        gl_settings.addWidget(self.cmb_style, 0, 1, 1, 3)
 
         self.chk_logscale = QCheckBox(frm_settings)
         self.chk_logscale.setText('Logarithmic Scaling')
-        grl_settings.addWidget(self.chk_logscale, 1, 0, 1, 4)
+        gl_settings.addWidget(self.chk_logscale, 1, 0, 1, 4)
 
         lbl_res = QLabel(frm_settings)
         lbl_res.setText('Resolution:')
-        grl_settings.addWidget(lbl_res, 2, 0, 1, 4)
+        gl_settings.addWidget(lbl_res, 2, 0, 1, 4)
 
         self.sld_res = QSlider(frm_settings)
         self.sld_res.setOrientation(Qt.Horizontal)
-        grl_settings.addWidget(self.sld_res, 3, 0, 1, 4)
+        gl_settings.addWidget(self.sld_res, 3, 0, 1, 4)
 
         return frm_settings
 
     def setup_signals(self):
         self.lst_meta.itemSelectionChanged.connect(self.show_meta)
         self.btn_calc.clicked.connect(self.generate_figures)
-        self.lst_plots.customContextMenuRequested.connect(self.show_plot)
-        self.lst_plots.clicked.connect(self.show_plot)
+        self.btn_removeplot.clicked.connect(lambda: self.handle_plot('remove'))
+        self.btn_addplot.clicked.connect(lambda: self.handle_plot('add'))
+        self.btn_clearplot.clicked.connect(lambda: self.handle_plot('clear'))
 
-    def show_plot(self, point=None):
-        item = self.lst_plots.currentItem().text()
-        if type(point) is not QPoint: # Left Click
-            print(self.hm_sacl.count())
+    def handle_plot(self, action):
+        if action == 'clear':
             while self.hm_sacl.count():
                 child = self.hm_sacl.takeAt(0)
                 if child is not None:
                     child.widget().deleteLater()
-        plot = plotter.generate_figure(self.datasets[item])
-        fig = FigureCanvas(plot)
-        fig.setMinimumSize(QSize(335, 268))
-        fig.setMaximumSize(QSize(550, 440))
-        fig.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
-        self.hm_sacl.addWidget(fig)
+            return
+        item = self.lst_plots.currentItem()
+        if not item:
+            print("No Item Selected")
+            return
+
+        item = item.text()
+        if item not in self.drawn_plots and action == 'remove':
+            print("No Instances of %s found" % item)
+        elif action == 'remove':
+            for widget in self.drawn_plots[item]:
+                widget.deleteLater()
+            del self.drawn_plots[item]
+        elif action == 'add':
+            plot = plotter.generate_figure(self.datasets[item])
+            fig = FigureCanvas(plot)
+            fig.setMinimumSize(QSize(335, 268))
+            fig.setMaximumSize(QSize(550, 440))
+            fig.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
+            self.hm_sacl.addWidget(fig)
+            if item in self.drawn_plots:
+                self.drawn_plots[item].append(fig)
+            else:
+                self.drawn_plots[item] = [fig]
 
     def save_replay(self):
         folder = path.dirname(path.realpath(__file__))
