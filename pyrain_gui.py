@@ -353,6 +353,7 @@ class PyRainGui(QMainWindow):
         if not self.analyser:
             self.txt_log.appendPlainText('Netstream not parsed yet. Please import replay file and parse the Netstream')
             return
+        self.heatmapview.setEnabled(True)
         player = self.cmb_player.currentText()
         slicing = True
         if self.cmb_slicing.currentText() == 'None':
@@ -383,14 +384,12 @@ class PyRainGui(QMainWindow):
                 question = QMessageBox().question(self, 'Proceed', msg,  QMessageBox.Yes, QMessageBox.No)
                 if question == QMessageBox.Yes:
                     self.show_progress()
-                    self.heatmapview.setEnabled(True)
                 else:
                     self.txt_log.appendPlainText('Netstream not Parsed. Only Metadata for view available')
             elif ext == 'pyrope':
                 self.replay = pickle.load(open(fname[0], 'rb'))
                 self.txt_log.appendPlainText('pyrain Parsed Replay File sucessfully loaded')
                 self.netstream_loaded()
-                self.heatmapview.setEnabled(True)
             self.meta_attributes = OrderedDict([('CRC', self.replay.crc),  # TODO search better way than hardcoding
                                                 ('Version', self.replay.version),  # while preserving order
                                                 ('Header', self.replay.header),
@@ -403,8 +402,8 @@ class PyRainGui(QMainWindow):
                                                 ('Names', self.replay.names),
                                                 ('Class Map', self.replay.class_index_map),
                                                 ('Netcache Tree', self.replay.netcache)])
-            for k in self.meta_attributes.keys():
-                self.lst_meta.addItem(k)
+            self.lst_meta.clear()
+            self.lst_meta.addItems(self.meta_attributes.keys())
             self.metaview.setEnabled(True)
 
     def show_meta(self):
