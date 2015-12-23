@@ -33,7 +33,7 @@ class PyRainGui(QMainWindow):
         self.drawn_plots = {}
 
     def setup_ui(self):
-        self.resize(720, 552)
+        self.resize(1100, 560)
         size_policy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         size_policy.setHorizontalStretch(0)
         size_policy.setVerticalStretch(0)
@@ -293,56 +293,63 @@ class PyRainGui(QMainWindow):
 
     def setup_signals(self):
         self.lst_meta.itemSelectionChanged.connect(self.show_meta)
-        self.btn_calc.clicked.connect(self.generate_figures)
-        self.btn_removeplot.clicked.connect(lambda: self.handle_plot('remove'))
-        self.btn_addplot.clicked.connect(lambda: self.handle_plot('add'))
-        self.btn_clearplot.clicked.connect(lambda: self.handle_plot('clear'))
+        self.btn_calc.clicked.connect(self.extract_data)
+        self.btn_removeplot.clicked.connect(self.remove_plots)
+        self.btn_addplot.clicked.connect(self.create_plots)
+        self.btn_clearplot.clicked.connect(self.clear_plots)
         self.lst_plots.itemSelectionChanged.connect(self.highlight_plots)
 
-    def handle_plot(self, action):
-        if action == 'clear':
-            while self.hm_sacl.count():
-                child = self.hm_sacl.takeAt(0)
-                if child is not None:
-                    child.widget().deleteLater()
-            return
+    def clear_plots(self):
+        while self.hm_sacl.count():
+            child = self.hm_sacl.takeAt(0)
+            if child is not None:
+                child.widget().deleteLater()
+        return
+
+    def remove_plots(self):
         items = self.lst_plots.selectedItems()
         if not items:
             return
         items_text = [item.text() for item in items]
         for item in items_text:
-            if item not in self.drawn_plots and action == 'remove':
+            if item not in self.drawn_plots:
                 print("No Instances of %s found" % item)
-            elif action == 'remove':
+            else:
                 for widget in self.drawn_plots[item]:
                     widget.deleteLater()
                 del self.drawn_plots[item]
-            elif action == 'add':
-                plot = plotter.generate_figure(self.datasets[item])
-                frm = QFrame()
-                frm.setContentsMargins(0, 0, 0, 0)
-                frm.setMinimumSize(QSize(335, 268))
-                frm.setMaximumSize(QSize(550, 440))
-                frm.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
-                frm.setLineWidth(3)
-                frml = QVBoxLayout(frm)
-                frml.setContentsMargins(0, 0, 0, 0)
-                fig = FigureCanvas(plot)
-                fig.setContentsMargins(0, 0, 0, 0)
-                frml.addWidget(fig)
-                self.hm_sacl.addWidget(frm)
-                if item in self.drawn_plots:
-                    self.drawn_plots[item].append(frm)
-                else:
-                    self.drawn_plots[item] = [frm]
+        self.highlight_plots()
+
+    def create_plots(self):
+        items = self.lst_plots.selectedItems()
+        if not items:
+            return
+        items_text = [item.text() for item in items]
+        for item in items_text:
+            plot = plotter.generate_figure(self.datasets[item])
+            frm = QFrame()
+            frm.setContentsMargins(0, 0, 0, 0)
+            frm.setMinimumSize(QSize(335, 268))
+            frm.setMaximumSize(QSize(550, 440))
+            frm.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
+            frm.setLineWidth(3)
+            frml = QVBoxLayout(frm)
+            frml.setContentsMargins(0, 0, 0, 0)
+            fig = FigureCanvas(plot)
+            fig.setContentsMargins(0, 0, 0, 0)
+            frml.addWidget(fig)
+            self.hm_sacl.addWidget(frm)
+            if item in self.drawn_plots:
+                self.drawn_plots[item].append(frm)
+            else:
+                self.drawn_plots[item] = [frm]
         self.highlight_plots()
 
     def highlight_plots(self):
         items = self.lst_plots.selectedItems()
-        if not items:
-            print("No Item Selected")
-            return
-        items_text = [item.text() for item in items]
+        items_text = []
+        if items:
+            items_text = [item.text() for item in items]
         enable_btn = False
         for name, widgetlist in self.drawn_plots.items():
             if name in items_text:
@@ -365,7 +372,7 @@ class PyRainGui(QMainWindow):
     def toggle_log(self):
         self.txt_log.setVisible(not self.txt_log.isVisible())
 
-    def generate_figures(self):
+    def extract_data(self):
         if not self.analyser:
             self.txt_log.appendPlainText('Netstream not parsed yet. Please import replay file and parse the Netstream')
             return

@@ -71,7 +71,7 @@ def generate_figure(data, draw_map=True, bins=(15, 12), hexbin=False, interpolat
         extent = [yedges[0], yedges[-1], xedges[-1], xedges[0]]
         ax.imshow(heatmap, extent=extent, norm=LogNorm(), cmap=my_cmap, interpolation=interpolate)
     else:
-        ax.hexbin(x, y, cmap=my_cmap, gridsize=bins, norm=LogNorm(), extent=[-5520, 5520, 4416,-4416])
+        ax.hexbin(x, y, cmap=my_cmap, gridsize=bins, norm=LogNorm(), extent=[-5520, 5520, 4416, -4416])
     if draw_map:
         x = [y for x, y in stadium]
         y = [x for x, y in stadium]
@@ -85,6 +85,6 @@ def generate_figure(data, draw_map=True, bins=(15, 12), hexbin=False, interpolat
             bbox=dict(facecolor='white'))
     ax.set_title(data['title'], bbox=dict(facecolor='white'))
     ax.axis('off')
-    fig.subplots_adjust(hspace=0, wspace=0, right=0.995, top=0.9, bottom=0.05, left=0.005)
+    fig.subplots_adjust(hspace=0, wspace=0, right=1, top=0.9, bottom=0.05, left=0)
     fig.patch.set_visible(False)
     return fig
