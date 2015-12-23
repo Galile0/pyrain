@@ -52,16 +52,16 @@ class PyRainGui(QMainWindow):
         tabview = QTabWidget(self.centralwidget)
         tabview.setTabPosition(QTabWidget.North)
 
-        self.metaview = QWidget()
-        self.metaview.setEnabled(False)
-        tabview.addTab(self.metaview, "MetaData")
-        self.setup_metaview(self.metaview)
+        self.meta_tab = QWidget()
+        self.meta_tab.setEnabled(False)
+        tabview.addTab(self.meta_tab, "MetaData")
+        self.setup_metaview(self.meta_tab)
 
-        self.heatmapview = QWidget()
-        self.heatmapview.setEnabled(False)
-        self.heatmapview.setMinimumSize(QSize(0, 290))
-        tabview.addTab(self.heatmapview, "Heatmaps")
-        self.setup_heatmapview(self.heatmapview)
+        self.heatmap_tab = QWidget()
+        self.heatmap_tab.setEnabled(False)
+        self.heatmap_tab.setMinimumSize(QSize(0, 290))
+        tabview.addTab(self.heatmap_tab, "Heatmaps")
+        self.setup_heatmapview(self.heatmap_tab)
 
         self.txt_log = QPlainTextEdit(self.centralwidget)
         size_policy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
@@ -71,7 +71,6 @@ class PyRainGui(QMainWindow):
 
         vl_centralw.addWidget(tabview)
         vl_centralw.addWidget(self.txt_log)
-        self.vl_centralw = vl_centralw
         self.setCentralWidget(self.centralwidget)
 
         self.setup_menu()
@@ -221,34 +220,39 @@ class PyRainGui(QMainWindow):
         self.lst_plots.setMaximumSize(QSize(16777215, 200))
         gl_controls.addWidget(self.lst_plots, 3, 0, 1, 6)
 
-        self.btn_addplot = QPushButton(box_controls)
-        self.btn_addplot.setText('Add')
-        gl_controls.addWidget(self.btn_addplot, 4, 0, 1, 2)
+        btn_addplot = QPushButton(box_controls)
+        btn_addplot.setText('Add')
+        btn_addplot.setEnabled(False)
+        gl_controls.addWidget(btn_addplot, 4, 0, 1, 2)
 
-        self.btn_removeplot = QPushButton(box_controls)
-        self.btn_removeplot.setText('Delete')
-        self.btn_removeplot.setEnabled(False)
-        gl_controls.addWidget(self.btn_removeplot, 4, 2, 1, 2)
+        btn_removeplot = QPushButton(box_controls)
+        btn_removeplot.setText('Delete')
+        btn_removeplot.setEnabled(False)
+        gl_controls.addWidget(btn_removeplot, 4, 2, 1, 2)
 
-        self.btn_updateplot = QPushButton(box_controls)
-        self.btn_updateplot.setText('Update')
-        self.btn_updateplot.setEnabled(False)
-        gl_controls.addWidget(self.btn_updateplot, 4, 4, 1, 2)
+        btn_updateplot = QPushButton(box_controls)
+        btn_updateplot.setText('Update')
+        btn_updateplot.setEnabled(False)
+        gl_controls.addWidget(btn_updateplot, 4, 4, 1, 2)
 
-        self.btn_clearplot = QPushButton(box_controls)
-        self.btn_clearplot.setText('Clear')
-        gl_controls.addWidget(self.btn_clearplot, 5, 0, 1, 3)
+        btn_clearplot = QPushButton(box_controls)
+        btn_clearplot.setText('Clear')
+        gl_controls.addWidget(btn_clearplot, 5, 0, 1, 3)
 
-        self.btn_popout = QPushButton(box_controls)
-        self.btn_popout.setText('Popout')
-        gl_controls.addWidget(self.btn_popout, 5, 3, 1, 3)
+        btn_popout = QPushButton(box_controls)
+        btn_popout.setText('Popout')
+        gl_controls.addWidget(btn_popout, 5, 3, 1, 3)
 
-        self.btn_saveimage = QPushButton(box_controls)
-        self.btn_saveimage.setText('Save as image')
-        gl_controls.addWidget(self.btn_saveimage, 6, 0, 1, 6)
+        btn_saveimage = QPushButton(box_controls)
+        btn_saveimage.setText('Save as image')
+        gl_controls.addWidget(btn_saveimage, 6, 0, 1, 6)
 
         spc_5 = QSpacerItem(20, 2, QSizePolicy.Minimum, QSizePolicy.MinimumExpanding)
         gl_controls.addItem(spc_5)
+
+        btn_removeplot.clicked.connect(self.remove_plots)
+        btn_addplot.clicked.connect(self.create_plots)
+        btn_clearplot.clicked.connect(self.clear_plots)
 
         return box_controls
 
@@ -297,9 +301,6 @@ class PyRainGui(QMainWindow):
     def setup_signals(self):
         self.lst_meta.itemSelectionChanged.connect(self.show_meta)
         self.btn_calc.clicked.connect(self.extract_data)
-        self.btn_removeplot.clicked.connect(self.remove_plots)
-        self.btn_addplot.clicked.connect(self.create_plots)
-        self.btn_clearplot.clicked.connect(self.clear_plots)
         self.lst_plots.itemSelectionChanged.connect(self.highlight_plots)
 
     def clear_plots(self):
@@ -398,7 +399,7 @@ class PyRainGui(QMainWindow):
         if not self.analyser:
             self.txt_log.appendPlainText('Netstream not parsed yet. Please import replay file and parse the Netstream')
             return
-        self.heatmapview.setEnabled(True)
+        self.heatmap_tab.setEnabled(True)
         player = self.cmb_player.currentText()
         slicing = True
         if self.cmb_slicing.currentText() == 'None':
@@ -449,7 +450,7 @@ class PyRainGui(QMainWindow):
                                                 ('Netcache Tree', self.replay.netcache)])
             self.lst_meta.clear()
             self.lst_meta.addItems(self.meta_attributes.keys())
-            self.metaview.setEnabled(True)
+            self.meta_tab.setEnabled(True)
 
     def show_meta(self):
         item = self.lst_meta.currentItem()
