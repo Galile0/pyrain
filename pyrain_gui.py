@@ -15,7 +15,7 @@ from PyQt5.QtCore import QSize, Qt, QRect, QThread, pyqtSignal, QPoint
 from PyQt5.QtWidgets import (QSizePolicy, QWidget, QVBoxLayout, QTabWidget, QPlainTextEdit, QGridLayout, QListWidget,
                              QSpacerItem, QHBoxLayout, QScrollArea, QLayout, QToolBar, QLabel, QComboBox, QPushButton, QMenuBar, QMenu, QAction,
                              QGroupBox, QFrame, QSlider, QCheckBox, QDialog, QApplication, QProgressBar, QMessageBox, QFileDialog, QMainWindow,
-                             QWidgetItem, QLayoutItem)
+                             QWidgetItem, QLayoutItem, QAbstractItemView)
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
 import plotter
@@ -213,6 +213,7 @@ class PyRainGui(QMainWindow):
         gl_controls.addWidget(lbl_plots, 2, 0, 1, 3)
 
         self.lst_plots = QListWidget(box_controls)
+        self.lst_plots.setSelectionMode(QAbstractItemView.ExtendedSelection)
         size_policy = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.MinimumExpanding)
         size_policy.setVerticalStretch(1)
         self.lst_plots.setSizePolicy(size_policy)
@@ -290,7 +291,7 @@ class PyRainGui(QMainWindow):
         self.btn_removeplot.clicked.connect(lambda: self.handle_plot('remove'))
         self.btn_addplot.clicked.connect(lambda: self.handle_plot('add'))
         self.btn_clearplot.clicked.connect(lambda: self.handle_plot('clear'))
-        self.lst_plots.itemSelectionChanged.connect(lambda: self.handle_plot('highlight'))
+        self.lst_plots.itemSelectionChanged.connect(lambda: self.handle_plot('None'))
 
     def handle_plot(self, action):
         if action == 'clear':
@@ -299,38 +300,39 @@ class PyRainGui(QMainWindow):
                 if child is not None:
                     child.widget().deleteLater()
             return
-        item = self.lst_plots.currentItem()
-        if not item:
+        # item = self.lst_plots.currentItem()
+        items = self.lst_plots.selectedItems()
+        if not items:
             print("No Item Selected")
             return
-
-        item = item.text()
-        if item not in self.drawn_plots and action == 'remove':
-            print("No Instances of %s found" % item)
-        elif action == 'remove':
-            for widget in self.drawn_plots[item]:
-                widget.deleteLater()
-            del self.drawn_plots[item]
-        elif action == 'add':
-            plot = plotter.generate_figure(self.datasets[item])
-            frm = QFrame()
-            frm.setContentsMargins(0, 0, 0, 0)
-            frm.setMinimumSize(QSize(335, 268))
-            frm.setMaximumSize(QSize(550, 440))
-            frm.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
-            frm.setLineWidth(3)
-            frml = QVBoxLayout(frm)
-            frml.setContentsMargins(0, 0, 0, 0)
-            fig = FigureCanvas(plot)
-            fig.setContentsMargins(0, 0, 0, 0)
-            frml.addWidget(fig)
-            self.hm_sacl.addWidget(frm)
-            if item in self.drawn_plots:
-                self.drawn_plots[item].append(frm)
-            else:
-                self.drawn_plots[item] = [frm]
+        items_text = [item.text() for item in items]
+        for item in items_text:
+            if item not in self.drawn_plots and action == 'remove':
+                print("No Instances of %s found" % item)
+            elif action == 'remove':
+                for widget in self.drawn_plots[item]:
+                    widget.deleteLater()
+                del self.drawn_plots[item]
+            elif action == 'add':
+                plot = plotter.generate_figure(self.datasets[item])
+                frm = QFrame()
+                frm.setContentsMargins(0, 0, 0, 0)
+                frm.setMinimumSize(QSize(335, 268))
+                frm.setMaximumSize(QSize(550, 440))
+                frm.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
+                frm.setLineWidth(3)
+                frml = QVBoxLayout(frm)
+                frml.setContentsMargins(0, 0, 0, 0)
+                fig = FigureCanvas(plot)
+                fig.setContentsMargins(0, 0, 0, 0)
+                frml.addWidget(fig)
+                self.hm_sacl.addWidget(frm)
+                if item in self.drawn_plots:
+                    self.drawn_plots[item].append(frm)
+                else:
+                    self.drawn_plots[item] = [frm]
         for name, widgetlist in self.drawn_plots.items():
-            if name == item:
+            if name in items_text:
                 for fig in widgetlist:
                     fig.setFrameStyle(0x11)
             else:
