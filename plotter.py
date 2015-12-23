@@ -86,5 +86,5 @@ def generate_figure(data, draw_map=True, bins=(15, 12), hexbin=False, interpolat
     ax.set_title(data['title'], bbox=dict(facecolor='white'))
     ax.axis('off')
     fig.subplots_adjust(hspace=0, wspace=0, right=0.995, top=0.9, bottom=0.05, left=0.005)
-    # fig.patch.set_visible(False)
+    fig.patch.set_visible(False)
     return fig

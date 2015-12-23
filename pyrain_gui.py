@@ -290,6 +290,7 @@ class PyRainGui(QMainWindow):
         self.btn_removeplot.clicked.connect(lambda: self.handle_plot('remove'))
         self.btn_addplot.clicked.connect(lambda: self.handle_plot('add'))
         self.btn_clearplot.clicked.connect(lambda: self.handle_plot('clear'))
+        self.lst_plots.itemSelectionChanged.connect(lambda: self.handle_plot('highlight'))
 
     def handle_plot(self, action):
         if action == 'clear':
@@ -312,15 +313,29 @@ class PyRainGui(QMainWindow):
             del self.drawn_plots[item]
         elif action == 'add':
             plot = plotter.generate_figure(self.datasets[item])
+            frm = QFrame()
+            frm.setContentsMargins(0, 0, 0, 0)
+            frm.setMinimumSize(QSize(335, 268))
+            frm.setMaximumSize(QSize(550, 440))
+            frm.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
+            frm.setLineWidth(3)
+            frml = QVBoxLayout(frm)
+            frml.setContentsMargins(0, 0, 0, 0)
             fig = FigureCanvas(plot)
-            fig.setMinimumSize(QSize(335, 268))
-            fig.setMaximumSize(QSize(550, 440))
-            fig.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
-            self.hm_sacl.addWidget(fig)
+            fig.setContentsMargins(0, 0, 0, 0)
+            frml.addWidget(fig)
+            self.hm_sacl.addWidget(frm)
             if item in self.drawn_plots:
-                self.drawn_plots[item].append(fig)
+                self.drawn_plots[item].append(frm)
             else:
-                self.drawn_plots[item] = [fig]
+                self.drawn_plots[item] = [frm]
+        for name, widgetlist in self.drawn_plots.items():
+            if name == item:
+                for fig in widgetlist:
+                    fig.setFrameStyle(0x11)
+            else:
+                for fig in widgetlist:
+                    fig.setFrameStyle(0x00)
 
     def save_replay(self):
         folder = path.dirname(path.realpath(__file__))
@@ -343,6 +358,9 @@ class PyRainGui(QMainWindow):
         data = self.analyser.get_player_pos(player, slicing)
         new_datasets = AnalyserUtils.filter_coords(data)
         for entry in new_datasets:
+            if entry['title_short'] in self.datasets:
+                print("Dataset already in Plotlist")
+                continue
             self.lst_plots.addItem(entry['title_short'])
             self.datasets[entry['title_short']] = entry
 
