@@ -60,37 +60,45 @@ class Analyser:
                         break
                 except KeyError:
                     pass
-            if sep:
-                slice_frames = [v['frame'] - frame_entered for v in self.replay.header['Goals'] if
-                                frame_entered <= v['frame'] <= frame_left]
-                slice_frames.append(frame_left - frame_entered)
-                lastframe = 0
-                for framenum in slice_frames:
-                    result.append({'player': player,
-                                   'start': self.replay.netstream[lastframe].current,
-                                   'end': self.replay.netstream[framenum].current,
-                                   'data': car_actors[lastframe:framenum]})
-                    lastframe = framenum
-            else:
-                result.append({'player': player,
-                               'start': self.replay.netstream[frame_entered].current,
-                               'end': self.replay.netstream[frame_left].current,
-                               'data': car_actors[:-1]})
-        print(result)
+            result.extend(self.wrap_data(player, car_actors, frame_entered, frame_left, sep))
         return result
 
-    def get_ball_pos(self):
-        result = []
+    def get_ball_pos(self, sep=False):
+        data = []
         for num, frame in self.replay.netstream.items():
+            found_ball = False
             for actor in frame.actors.values():
                 if "Ball_Default" in actor['actor_type']:
                     try:
-                        pos = actor['data']['TAGame.RBActor_TA:ReplicatedRBStat']['pos']
-                        result.append(pos)
+                        pos = actor['data']['TAGame.RBActor_TA:ReplicatedRBState']['pos']
+                        data.append(pos)
+                        found_ball = True
                     except KeyError:
                         pass
+            if not found_ball and data:
+                data.append(data[-1])
+        result = self.wrap_data('Ball', data, 0, max(self.replay.netstream, key=int), sep)
+        print(len(result))
         return result
 
+    def wrap_data(self, player, data, start, end, slice=False):
+        result = []
+        if slice:
+            slice_frames = [v['frame'] - start for v in self.replay.header['Goals'] if start <= v['frame'] <= end]
+            slice_frames.append(end - start)
+            lastframe = 0
+            for framenum in slice_frames:
+                result.append({'player': player,
+                               'start': self.replay.netstream[lastframe].current,
+                               'end': self.replay.netstream[framenum].current,
+                               'data': data[lastframe:framenum]})
+                lastframe = framenum
+        else:
+            result.append({'player': player,
+                           'start': self.replay.netstream[start].current,
+                           'end': self.replay.netstream[end].current,
+                           'data': data[:-1]})
+        return result
 
 class AnalyserUtils:
     @staticmethod

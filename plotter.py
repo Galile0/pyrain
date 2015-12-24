@@ -82,10 +82,10 @@ def generate_figure(data, draw_map=True, bins=(15, 12), hexbin=False, interpolat
         x = [y for x, y in stadium]
         y = [x for x, y in stadium]
         ax.plot(x, y, c='r')
-    ax.text(0.1, 0, 'Team 1',
+    ax.text(0.1, 0, 'Team 0',
             transform=ax.transAxes,
             bbox=dict(facecolor='white'))
-    ax.text(0.9, 0, 'Team 0',
+    ax.text(0.9, 0, 'Team 1',
             horizontalalignment='right',
             transform=ax.transAxes,
             bbox=dict(facecolor='white'))

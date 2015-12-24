@@ -415,7 +415,10 @@ class PyRainGui(QMainWindow):
         slicing = True
         if self.cmb_slicing.currentText() == 'None':
             slicing = False
-        data = self.analyser.get_player_pos(player, slicing)
+        if player == 'Ball':
+            data = self.analyser.get_ball_pos(slicing)
+        else:
+            data = self.analyser.get_player_pos(player, slicing)
         new_datasets = AnalyserUtils.filter_coords(data)
         for entry in new_datasets:
             if entry['title_short'] in self.datasets:
@@ -488,6 +491,7 @@ class PyRainGui(QMainWindow):
         self.analyser = Analyser(self.replay)
         self.cmb_player.clear()
         self.cmb_player.insertItems(0, [k for k in self.analyser.player.keys()])
+        self.cmb_player.addItem('Ball')
 
 
 class ProgressDialog(QDialog):
