@@ -243,9 +243,12 @@ class Replay:
 
     def __getstate__(self):
         d = dict(self.__dict__)
-        del d['_replay']
-        del d['_netstream_raw']
-        del d['_header_raw']
+        if '_replay' in d:
+            del d['_replay']
+        if '_netstream' in d:
+            del d['_netstream_raw']
+        if '_header' in d:
+            del d['_header_raw']
         return d
 
     def __setstate__(self, d):
@@ -261,3 +264,18 @@ class Replay:
         if skip_empty:
             return json.dumps(self, default=lambda o: nonempty(self.netstream.items()), indent=2)
         return json.dumps(self, default=lambda o: {k: v.__dict__ for k, v in self.netstream.items()}, indent=2)
+
+    def metadata_to_json(self):
+        d = OrderedDict([('CRC', self.crc),
+                        ('Version', self.version),
+                        ('Header', self.header),
+                        ('Maps', self.maps),
+                        ('KeyFrames', self.keyframes),
+                        ('Debug Log', self.dbg_log),
+                        ('Goal Frames', self.goal_frames),
+                        ('Packages', self.packages),
+                        ('Objects', self.objects),
+                        ('Names', self.names),
+                        ('Class Map', self.class_index_map),
+                        ('Netcache Tree', self.netcache)])
+        return json.dumps(d, indent=2)

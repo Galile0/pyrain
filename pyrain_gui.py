@@ -157,17 +157,13 @@ class PyRainGui(QMainWindow):
         menu_file.setTitle('File')
         menubar.addAction(menu_file.menuAction())
 
-        action_open = QAction(self)
-        action_open.setText('Open...')
-        menu_file.addAction(action_open)
+        action_import = QAction(self)
+        action_import.setText('Import...')
+        menu_file.addAction(action_import)
 
-        menu_save = QMenu(self)
-        menu_save.setTitle('Save')
-        menu_file.addAction(menu_save.menuAction())
-
-        action_save_replay = QAction(self)
-        action_save_replay.setText('Save Parsed Replay')
-        menu_save.addAction(action_save_replay)
+        action_export = QAction(self)
+        action_export.setText('Export...')
+        menu_file.addAction(action_export)
 
         action_exit = QAction(self)
         action_exit.setText('Exit')
@@ -181,10 +177,10 @@ class PyRainGui(QMainWindow):
         action_toggle_log.setText('Debug Log')
         menu_view.addAction(action_toggle_log)
 
-        action_open.triggered.connect(self.load_file)
+        action_import.triggered.connect(self.import_data)
         action_exit.triggered.connect(self.close)
         action_toggle_log.triggered.connect(self.toggle_log)
-        action_save_replay.triggered.connect(self.save_replay)
+        action_export.triggered.connect(self.export_data)
         self.setMenuBar(menubar)
 
     def setup_heatmap_controls(self):
@@ -368,7 +364,6 @@ class PyRainGui(QMainWindow):
 
     def highlight_plots(self):
         selected_plots = self.lst_plots.selectedItems()
-        plot_names = []
         if selected_plots:
             plot_names = [plot.text() for plot in selected_plots]
         else:
@@ -388,12 +383,26 @@ class PyRainGui(QMainWindow):
             enable_add=True
         self.btn_addplot.setEnabled(enable_add)
 
-    def save_replay(self):
+    def export_data(self):
+        if not self.replay:
+            return  # TODO LOG ERROR
         folder = path.dirname(path.realpath(__file__))
-        ext = 'Replay (*.pyrope)'
+        ext = 'Replay (*.pyrope);;MetaData (*.json);;Header (*.json);;Netstream (*.json)'
         filename = QFileDialog.getSaveFileName(self, 'Load Replay', folder, ext)
         if filename[0]:
-            pickle.dump(self.replay, open(filename[0], 'wb'))
+            if 'Replay' in filename[1]:
+                pickle.dump(self.replay, open(filename[0], 'wb'))
+            elif 'MetaData' in filename[1]:
+                with open(filename[0], 'w', encoding='utf-8') as outfile:
+                    outfile.write(self.replay.metadata_to_json())
+            elif 'Header' in filename[1]:
+                with open(filename[0], 'w', encoding='utf-8') as outfile:
+                    json.dump(self.replay.header, outfile, indent=2, ensure_ascii=False)
+            elif 'Netstream' in filename[1]:
+                if not self.replay.netstream:
+                    return  # TODO LOG ERROR
+                with open(filename[0], 'w', encoding='utf-8') as outfile:
+                    outfile.write(self.replay.netstream_to_json())
 
     def toggle_log(self):
         self.txt_log.setVisible(not self.txt_log.isVisible())
@@ -416,7 +425,7 @@ class PyRainGui(QMainWindow):
             self.lst_plots.addItem(entry['title_short'])
             self.datasets[entry['title_short']] = entry
 
-    def load_file(self):
+    def import_data(self):
         home = path.expanduser('~')
         # replay_folder = home+'\\My Games\\\Rocket League\\TAGame\\Demos'
         replay_folder = path.dirname(path.realpath(__file__))+'\\testfiles'  # TODO DEV ONLY
