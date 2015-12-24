@@ -319,47 +319,58 @@ class PyRainGui(QMainWindow):
         self.highlight_plots()
 
     def update_plots(self):
-        self.remove_plots()
-        self.create_plots()
+        items = self.lst_plots.selectedItems()
+        if not items:
+            return
+        items_text = [item.text() for item in items if item.text() in self.drawn_plots]
+        for plot in items_text:
+            old_widget = self.drawn_plots[plot]
+            index = self.hm_sacl.indexOf(old_widget)
+            self.hm_sacl.removeWidget(old_widget)
+            new_widget = self.generate_plot_widget(plot)
+            self.hm_sacl.insertWidgetAt(index, new_widget)
+        self.highlight_plots()
 
     def create_plots(self):
         items = self.lst_plots.selectedItems()
         if not items:
             return
         items_text = [item.text() for item in items if item.text() not in self.drawn_plots]
+        for item in items_text:
+            self.hm_sacl.addWidget(self.generate_plot_widget(item))
+        self.highlight_plots()
+
+    def generate_plot_widget(self, datasetname):
+        plt_type = self.cmb_style.currentText()
+        hexbin = False
+        interpolate = False
+        if plt_type == 'Hexbin':
+            hexbin = True
+        if 'Blur' in plt_type:
+            interpolate = True
         scale = self.sld_res.value()/10
         bins = (math.ceil(scale*15), math.ceil(scale*12))
         log = self.chk_logscale.isChecked()
-        plt_type = self.cmb_style.currentText()
-        interpolate = False
-        if plt_type == 'Hexbin':
-            hexbin=True
-        else:
-            hexbin=False
-        if 'Blur' in plt_type:
-            interpolate=True
-        for item in items_text:
-            plot = plotter.generate_figure(self.datasets[item],
-                                           bins=bins,
-                                           norm=log,
-                                           interpolate=interpolate,
-                                           hexbin=hexbin)
-            frm = QFrame()
-            frm.setContentsMargins(0, 0, 0, 0)
-            frm.setMinimumSize(QSize(300, 240))
-            frm.setMaximumSize(QSize(515, 412))
-            frm.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
-            frm.setLineWidth(3)
-            frml = QVBoxLayout(frm)
-            frml.setContentsMargins(0, 0, 0, 0)
-            fig = FigureCanvas(plot)
-            fig.mpl_connect('scroll_event', lambda evt: self.hm_sa.verticalScrollBar().setValue(
-                    self.hm_sa.verticalScrollBar().value()+int(evt.step)*-60)) # TODO Well, it works <.<
-            fig.setContentsMargins(0, 0, 0, 0)
-            frml.addWidget(fig)
-            self.hm_sacl.addWidget(frm)
-            self.drawn_plots[item] = frm
-        self.highlight_plots()
+        plot = plotter.generate_figure(self.datasets[datasetname],
+                                       bins=bins,
+                                       norm=log,
+                                       interpolate=interpolate,
+                                       hexbin=hexbin)
+        frm = QFrame()
+        frm.setContentsMargins(0, 0, 0, 0)
+        frm.setMinimumSize(QSize(300, 240))
+        frm.setMaximumSize(QSize(515, 412))
+        frm.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
+        frm.setLineWidth(3)
+        frml = QVBoxLayout(frm)
+        frml.setContentsMargins(0, 0, 0, 0)
+        fig = FigureCanvas(plot)
+        fig.mpl_connect('scroll_event', lambda evt: self.hm_sa.verticalScrollBar().setValue(
+                self.hm_sa.verticalScrollBar().value()+int(evt.step)*-60)) # TODO Well, it works <.<
+        fig.setContentsMargins(0, 0, 0, 0)
+        frml.addWidget(fig)
+        self.drawn_plots[datasetname] = frm
+        return frm
 
     def highlight_plots(self):
         selected_plots = self.lst_plots.selectedItems()

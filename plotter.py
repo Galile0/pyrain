@@ -62,9 +62,9 @@ def generate_figure(data, draw_map=True, bins=(15, 12), hexbin=False, interpolat
     my_cmap = copy.copy(plt.cm.get_cmap('jet'))
     my_cmap.set_bad((0, 0, 1))
     if norm:
-        norm=LogNorm()
+        norm = LogNorm()
     else:
-        norm=None
+        norm = None
     if not hexbin:
         if interpolate:
             interpolate = 'bilinear'
@@ -73,8 +73,7 @@ def generate_figure(data, draw_map=True, bins=(15, 12), hexbin=False, interpolat
         bins = (bins[1], bins[0])
         heatmap, xedges, yedges = np.histogram2d(y, x, bins=bins, range=[(-4416, 4416), (-5520, 5520)])
         extent = [yedges[0], yedges[-1], xedges[-1], xedges[0]]
-        print(extent)
-        ax.imshow(heatmap, extent=extent, norm=norm, cmap=my_cmap, interpolation=interpolate, origin='upper', aspect='auto')
+        ax.imshow(heatmap, extent=extent, norm=norm, cmap=my_cmap, interpolation=interpolate, origin='lower', aspect='auto')
         ax.autoscale(False)
     else:
         ax.hexbin(x, y, cmap=my_cmap, gridsize=bins, norm=norm, extent=[-5520, 5520, 4416, -4416])
