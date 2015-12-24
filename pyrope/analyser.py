@@ -5,7 +5,6 @@ class Analyser:
             raise TypeError("Replay has to be decoded")
         self.replay = replay
         self.player = self._get_player()
-        print(self.player)
 
     def _get_player(self):  # Todo add check that frames are actually parsed
         player = {}
@@ -61,9 +60,6 @@ class Analyser:
                         break
                 except KeyError:
                     pass
-            print('ID', playerid)
-            print('entered', frame_entered)
-            print('left', frame_left)
             if sep:
                 slice_frames = [v['frame'] - frame_entered for v in self.replay.header['Goals'] if
                                 frame_entered <= v['frame'] <= frame_left]

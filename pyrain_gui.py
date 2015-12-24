@@ -1,4 +1,3 @@
-import copy
 import json
 import pickle
 import traceback
@@ -12,11 +11,11 @@ from io import StringIO
 from time import sleep
 
 import math
-from PyQt5.QtCore import QSize, Qt, QRect, QThread, pyqtSignal, QPoint
+from PyQt5.QtCore import QSize, Qt, QRect, QThread, pyqtSignal
 from PyQt5.QtWidgets import (QSizePolicy, QWidget, QVBoxLayout, QTabWidget, QPlainTextEdit, QGridLayout, QListWidget,
-                             QSpacerItem, QHBoxLayout, QScrollArea, QLayout, QToolBar, QLabel, QComboBox, QPushButton, QMenuBar, QMenu, QAction,
-                             QGroupBox, QFrame, QSlider, QCheckBox, QDialog, QApplication, QProgressBar, QMessageBox, QFileDialog, QMainWindow,
-                             QWidgetItem, QLayoutItem, QAbstractItemView)
+                             QSpacerItem, QHBoxLayout, QScrollArea, QLayout, QToolBar, QLabel, QComboBox, QPushButton,
+                             QMenuBar, QMenu, QAction, QGroupBox, QFrame, QSlider, QCheckBox, QDialog, QApplication,
+                             QProgressBar, QMessageBox, QFileDialog, QMainWindow, QAbstractItemView)
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
 import plotter
