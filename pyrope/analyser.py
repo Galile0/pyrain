@@ -78,7 +78,6 @@ class Analyser:
             if not found_ball and data:
                 data.append(data[-1])
         result = self.wrap_data('Ball', data, 0, max(self.replay.netstream, key=int), sep)
-        print(len(result))
         return result
 
     def wrap_data(self, player, data, start, end, slice=False):
@@ -99,6 +98,7 @@ class Analyser:
                            'end': self.replay.netstream[end].current,
                            'data': data[:-1]})
         return result
+
 
 class AnalyserUtils:
     @staticmethod

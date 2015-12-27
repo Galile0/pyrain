@@ -2,6 +2,7 @@ import json
 import pickle
 import traceback
 import sys
+import logging
 
 from os import path
 from queue import Queue
@@ -31,6 +32,12 @@ class PyRainGui(QMainWindow):
         self.analyser = None
         self.datasets = {}
         self.drawn_plots = {}
+        self.setup_ui()
+        handler = QtHandler(self.txt_log)
+        handler.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
+        logger.addHandler(handler)
+        logger.setLevel(logging.DEBUG)
+        logger.info('Setup Completed. Welcome to PyRain')
 
     def setup_ui(self):
         self.resize(1100, 560)
@@ -75,8 +82,6 @@ class PyRainGui(QMainWindow):
         self.setup_menu()
         self.setup_toolbar()
         self.setup_signals()
-
-        self.txt_log.appendPlainText('Setup Completed. Welcome to PyRain')
 
     def setup_metaview(self, tab):
         metaview_grid = QGridLayout(tab)
@@ -419,7 +424,7 @@ class PyRainGui(QMainWindow):
 
     def extract_data(self):
         if not self.analyser:
-            self.txt_log.appendPlainText('Netstream not parsed yet. Please import replay file and parse the Netstream')
+            logger.error('Netstream not parsed yet. Please import replay file and parse the Netstream')
             return
         self.heatmap_tab.setEnabled(True)
         player = self.cmb_player.currentText()
@@ -433,7 +438,7 @@ class PyRainGui(QMainWindow):
         new_datasets = AnalyserUtils.filter_coords(data)
         for entry in new_datasets:
             if entry['title_short'] in self.datasets:
-                print("Dataset already in Plotlist")
+                logger.debug("Dataset already in Plotlist")
                 continue
             self.lst_plots.addItem(entry['title_short'])
             self.datasets[entry['title_short']] = entry
@@ -450,16 +455,16 @@ class PyRainGui(QMainWindow):
             ext = fname[0].split('.')[-1]
             if ext == 'replay':
                 self.replay = Replay(path=fname[0])
-                self.txt_log.appendPlainText('Rocket League Replay File loaded and Validated')
+                logger.info('Rocket League Replay File loaded and Validated')
                 msg = 'Header Parsed. Decode Netstream now?\n(This might take a while)'
                 question = QMessageBox().question(self, 'Proceed', msg,  QMessageBox.Yes, QMessageBox.No)
                 if question == QMessageBox.Yes:
                     self.show_progress()
                 else:
-                    self.txt_log.appendPlainText('Netstream not Parsed. Only Metadata for view available')
+                    logger.warn('Netstream not Parsed. Only Metadata for view available')
             elif ext == 'pyrope':
                 self.replay = pickle.load(open(fname[0], 'rb'))
-                self.txt_log.appendPlainText('pyrain Parsed Replay File sucessfully loaded')
+                logger.info('pyrain Parsed Replay File sucessfully loaded')
                 self.netstream_loaded()
             self.meta_attributes = OrderedDict([('CRC', self.replay.crc),  # TODO search better way than hardcoding
                                                 ('Version', self.replay.version),  # while preserving order
@@ -498,7 +503,7 @@ class PyRainGui(QMainWindow):
         ti.start()
 
     def netstream_loaded(self):
-        self.txt_log.appendPlainText('Netstream Parsed. No Errors found')
+        logger.info('Netstream Parsed. No Errors found')
         self.analyser = Analyser(self.replay)
         self.cmb_player.clear()
         self.cmb_player.insertItems(0, [k for k in self.analyser.player.keys()])
@@ -670,6 +675,17 @@ class FlowLayout(QLayout):
         return y + lineHeight - rect.y()
 
 
+class QtHandler(logging.Handler):
+
+    def __init__(self, widget):
+        super().__init__()
+        self.widget = widget
+
+    def emit(self, record):
+        # record = self.format(record)
+        self.widget.appendPlainText(record.msg)
+
+
 def excepthook(excType, excValue, tracebackobj):
     """
     Global function to catch unhandled exceptions.
@@ -690,9 +706,10 @@ def excepthook(excType, excValue, tracebackobj):
     errorbox = QMessageBox()
     errorbox.setText(str(notice)+str(msg))
     errorbox.exec_()
+
 sys.excepthook = excepthook
+logger = logging.getLogger('pyrain')
 app = QApplication(sys.argv)
 ui = PyRainGui()
-ui.setup_ui()
 ui.show()
 sys.exit(app.exec_())
