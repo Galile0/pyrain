@@ -255,7 +255,7 @@ class PyRainGui(QMainWindow):
         self.btn_updateplot.clicked.connect(self.update_plots)
         btn_popout.clicked.connect(self.popout_plots)
         btn_clearplot.clicked.connect(self.clear_plots)
-
+        btn_saveimage.clicked.connect(self.save_plots)
         return box_controls
 
     def setup_settings(self, box_controls):
@@ -357,6 +357,19 @@ class PyRainGui(QMainWindow):
             popout.show()
             self.popouts.append(popout)
 
+    def save_plots(self):
+        items = self.lst_plots.selectedItems()
+        if not items:
+            return
+        items_text = [item.text() for item in items if item.text() in self.drawn_plots]
+        for plot in items_text:
+            folder = path.dirname(path.realpath(__file__))
+            ext = 'Plot (*.png)'
+            filename = QFileDialog.getSaveFileName(self, 'Save Image', folder, ext)
+            if filename[0]:
+                fig = self.drawn_plots[plot].findChild(FigureCanvas).figure
+                fig.savefig(filename[0])
+
     def generate_plot_widget(self, datasetname):
         plt_type = self.cmb_style.currentText()
         hexbin = False
@@ -415,7 +428,7 @@ class PyRainGui(QMainWindow):
             return  # TODO LOG ERROR
         folder = path.dirname(path.realpath(__file__))
         ext = 'Replay (*.pyrope);;MetaData (*.json);;Header (*.json);;Netstream (*.json)'
-        filename = QFileDialog.getSaveFileName(self, 'Load Replay', folder, ext)
+        filename = QFileDialog.getSaveFileName(self, 'Export Replay', folder, ext)
         if filename[0]:
             if 'Replay' in filename[1]:
                 pickle.dump(self.replay, open(filename[0], 'wb'))
