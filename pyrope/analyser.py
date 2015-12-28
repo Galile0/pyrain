@@ -10,21 +10,32 @@ class Analyser:
         player = {}
         for frame in self.replay.netstream.values():
             for name, value in frame.actors.items():
-                if "e_Default__PRI_TA" in name and "TAGame.PRI_TA:ClientLoadout" in value['data']:
+                if "e_Default__PRI_TA" in name and "Engine.PlayerReplicationInfo:Team" in value['data']:
                     try:
                         playername = value['data']['Engine.PlayerReplicationInfo:PlayerName']
                         actorid = value['actor_id']
                         if playername in player:
-                            if actorid not in player[playername]:
-                                player[playername].append(value['actor_id'])
-                        else:
-                            player[playername] = [value['actor_id']]
+                            if actorid not in player[playername]['cars']:
+                                player[playername]['cars'].append(value['actor_id'])
+                        else:  # This will break if player of team a leaves and rejoins team b..dunno if that's a thing
+                            player[playername] = {'cars': [value['actor_id']],
+                                                  'team': value['data']['Engine.PlayerReplicationInfo:Team'][1]}
                     except KeyError:
                         pass
+        team_ids = [v['team'] for k, v in player.items()]
+        id_max = max(team_ids)
+        id_min = min(team_ids)
+        for k, v in player.items():  # Normalize Team Ids to 0 and 1
+            if v['team'] == id_min:
+                v['team'] = 0
+            elif v['team'] == id_max:
+                v['team'] = 1
+            else:
+                raise ValueError("THREE TEAMS?! NOT POSSIBLE!")
         return player
 
     def get_player_pos(self, player, sep=False):
-        playerids = self.player[player]
+        playerids = self.player[player]['cars']
         result = []
         for playerid in playerids:
             current_car = -1
