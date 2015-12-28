@@ -253,6 +253,7 @@ class PyRainGui(QMainWindow):
         self.btn_removeplot.clicked.connect(self.remove_plots)
         self.btn_addplot.clicked.connect(self.create_plots)
         self.btn_updateplot.clicked.connect(self.update_plots)
+        btn_popout.clicked.connect(self.popout_plots)
         btn_clearplot.clicked.connect(self.clear_plots)
 
         return box_controls
@@ -344,6 +345,17 @@ class PyRainGui(QMainWindow):
         for item in items_text:
             self.hm_sacl.addWidget(self.generate_plot_widget(item))
         self.highlight_plots()
+
+    def popout_plots(self):
+        items = self.lst_plots.selectedItems()
+        if not items:
+            return
+        items_text = [item.text() for item in items if item.text() in self.drawn_plots]
+        self.popouts = []
+        for plot in items_text:
+            popout = PopoutDialog(FigureCanvas(self.drawn_plots[plot].findChild(FigureCanvas).figure), plot)
+            popout.show()
+            self.popouts.append(popout)
 
     def generate_plot_widget(self, datasetname):
         plt_type = self.cmb_style.currentText()
@@ -509,6 +521,17 @@ class PyRainGui(QMainWindow):
         self.cmb_player.insertItems(0, [k for k in self.analyser.player.keys()])
         self.cmb_player.addItem('Ball')
 
+
+class PopoutDialog(QDialog):
+
+    def __init__(self, widget, title):
+        super().__init__()
+        self.setWindowTitle(title)
+        self.setMinimumSize(300, 240)
+        layout = QVBoxLayout(self)
+        layout.addWidget(widget)
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.setWindowFlags(self.windowFlags() | Qt.WindowMinMaxButtonsHint)
 
 class ProgressDialog(QDialog):
 
