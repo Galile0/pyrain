@@ -13,15 +13,16 @@ from time import sleep
 
 import math
 from PyQt5.QtCore import QSize, Qt, QRect, QThread, pyqtSignal
-from PyQt5.QtWidgets import (QSizePolicy, QWidget, QVBoxLayout, QTabWidget, QPlainTextEdit, QGridLayout, QListWidget,
-                             QSpacerItem, QHBoxLayout, QScrollArea, QLayout, QToolBar, QLabel, QComboBox, QPushButton,
-                             QMenuBar, QMenu, QAction, QGroupBox, QFrame, QSlider, QCheckBox, QDialog, QApplication,
+from PyQt5.QtWidgets import (QSizePolicy, QWidget, QVBoxLayout, QTabWidget, QPlainTextEdit,
+                             QGridLayout, QListWidget, QSpacerItem, QHBoxLayout, QScrollArea,
+                             QLayout, QToolBar, QLabel, QComboBox, QPushButton, QMenuBar, QMenu,
+                             QAction, QGroupBox, QFrame, QSlider, QCheckBox, QDialog, QApplication,
                              QProgressBar, QMessageBox, QFileDialog, QMainWindow, QAbstractItemView)
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
 import plotter
 from analyser import Analyser, AnalyserUtils
-from pyrope.replay import Replay
+from pyrope import Replay
 
 
 class PyRainGui(QMainWindow):
@@ -347,15 +348,17 @@ class PyRainGui(QMainWindow):
         self.highlight_plots()
 
     def popout_plots(self):
-        plotter.graph_2d(self.analyser.calc_dist_to_zero(self.cmb_player.currentText(), reference='Ball'))
-        return
+        # plotter.graph_2d(self.analyser.calc_dist_to_zero(self.cmb_player.currentText(),
+        #                                                  reference='Ball'))
+        # return
         items = self.lst_plots.selectedItems()
         if not items:
             return
         items_text = [item.text() for item in items if item.text() in self.drawn_plots]
         self.popouts = []
         for plot in items_text:
-            popout = PopoutDialog(FigureCanvas(self.drawn_plots[plot].findChild(FigureCanvas).figure), plot)
+            figure = self.drawn_plots[plot].findChild(FigureCanvas).figure
+            popout = PopoutDialog(FigureCanvas(figure), plot)
             popout.show()
             self.popouts.append(popout)
 
@@ -398,7 +401,7 @@ class PyRainGui(QMainWindow):
         frml.setContentsMargins(0, 0, 0, 0)
         fig = FigureCanvas(plot)
         fig.mpl_connect('scroll_event', lambda evt: self.hm_sa.verticalScrollBar().setValue(
-                self.hm_sa.verticalScrollBar().value()+int(evt.step)*-60)) # TODO Well, it works <.<
+                self.hm_sa.verticalScrollBar().value()+int(evt.step)*-60))  # TODO Well, it works
         fig.setContentsMargins(0, 0, 0, 0)
         frml.addWidget(fig)
         self.drawn_plots[datasetname] = frm
@@ -451,7 +454,8 @@ class PyRainGui(QMainWindow):
 
     def extract_data(self):
         if not self.analyser:
-            logger.error('Netstream not parsed yet. Please import replay file and parse the Netstream')
+            logger.error('Netstream not parsed yet.'
+                         'Please import replay file and parse the Netstream')
             return
         self.heatmap_tab.setEnabled(True)
         player = self.cmb_player.currentText()
@@ -484,7 +488,8 @@ class PyRainGui(QMainWindow):
                 self.replay = Replay(path=fname[0])
                 logger.info('Rocket League Replay File loaded and Validated')
                 msg = 'Header Parsed. Decode Netstream now?\n(This might take a while)'
-                question = QMessageBox().question(self, 'Proceed', msg,  QMessageBox.Yes, QMessageBox.No)
+                question = QMessageBox().question(self, 'Proceed', msg,
+                                                  QMessageBox.Yes, QMessageBox.No)
                 if question == QMessageBox.Yes:
                     self.show_progress()
                 else:
@@ -493,8 +498,8 @@ class PyRainGui(QMainWindow):
                 self.replay = pickle.load(open(fname[0], 'rb'))
                 logger.info('pyrain Parsed Replay File sucessfully loaded')
                 self.netstream_loaded()
-            self.meta_attributes = OrderedDict([('CRC', self.replay.crc),  # TODO search better way than hardcoding
-                                                ('Version', self.replay.version),  # while preserving order
+            self.meta_attributes = OrderedDict([('CRC', self.replay.crc),
+                                                ('Version', self.replay.version),
                                                 ('Header', self.replay.header),
                                                 ('Maps', self.replay.maps),
                                                 ('KeyFrames', self.replay.keyframes),
@@ -547,6 +552,7 @@ class PopoutDialog(QDialog):
         layout.addWidget(widget)
         layout.setContentsMargins(0, 0, 0, 0)
         self.setWindowFlags(self.windowFlags() | Qt.WindowMinMaxButtonsHint)
+
 
 class ProgressDialog(QDialog):
 
@@ -621,8 +627,8 @@ class ThreadedImport(QThread):
 
 class FlowLayout(QLayout):
     # TODO SHIT GETS LAGGY WITH LOTS OF MPL Figures
-    # TODO ASPECT RATIO IS HARDCODED. BETTER TAKE IT FROM WIDGETS WidthForHeight (would need subclassing widget)
-    def __init__(self, parent=None, container=None, resize_threshold=(0,0), margin=0, spacing=-1):
+    # TODO ASPECT RATIO IS HARDCODED. BETTER TAKE IT FROM WIDGETS WidthForHeight
+    def __init__(self, parent=None, container=None, resize_threshold=(0, 0), margin=0, spacing=-1):
         super(FlowLayout, self).__init__(parent)
         if parent is not None:
             self.setContentsMargins(margin, margin, margin, margin)
@@ -649,12 +655,12 @@ class FlowLayout(QLayout):
         return len(self.itemList)
 
     def itemAt(self, index):
-        if index >= 0 and index < len(self.itemList):
+        if 0 <= index < len(self.itemList):
             return self.itemList[index]
         return None
 
     def takeAt(self, index):
-        if index >= 0 and index < len(self.itemList):
+        if 0 <= index < len(self.itemList):
             return self.itemList.pop(index)
         return None
 
@@ -665,12 +671,12 @@ class FlowLayout(QLayout):
         return True
 
     def heightForWidth(self, width):
-        height = self.doLayout(QRect(0, 0, width, 0), True)
+        height = self.do_layout(QRect(0, 0, width, 0), True)
         return height
 
     def setGeometry(self, rect):
         super(FlowLayout, self).setGeometry(rect)
-        self.doLayout(rect, False)
+        self.do_layout(rect, False)
 
     def sizeHint(self):
         return self.minimumSize()
@@ -683,34 +689,41 @@ class FlowLayout(QLayout):
         size += QSize(2 * margin, 2 * margin)
         return size
 
-    def doLayout(self, rect, testOnly):
+    def do_layout(self, rect, testonly):
         x = rect.x()
         y = rect.y()
-        lineHeight = 0
+        line_height = 0
 
         for item in self.itemList:
             wid = item.widget()
-            spaceX = self.spacing() + wid.style().layoutSpacing(QSizePolicy.PushButton, QSizePolicy.PushButton, Qt.Horizontal)
-            spaceY = self.spacing() + wid.style().layoutSpacing(QSizePolicy.PushButton, QSizePolicy.PushButton, Qt.Vertical)
-            nextX = x + item.geometry().width() + spaceX
+            space_x = self.spacing() + wid.style().layoutSpacing(QSizePolicy.PushButton,
+                                                                 QSizePolicy.PushButton,
+                                                                 Qt.Horizontal)
+            space_y = self.spacing() + wid.style().layoutSpacing(QSizePolicy.PushButton,
+                                                                 QSizePolicy.PushButton,
+                                                                 Qt.Vertical)
+            next_x = x + item.geometry().width() + space_x
             cont_width = self.container.geometry().width()+self.resize_threshold[0]
             cont_height = self.container.geometry().height()+self.resize_threshold[1]
-            if nextX - spaceX > rect.right() and lineHeight > 0:
+            if next_x - space_x > rect.right() and line_height > 0:
                 x = rect.x()
-                y = y + lineHeight + spaceY
-                nextX = x + item.geometry().width() + spaceX
-                lineHeight = 0
+                y = y + line_height + space_y
+                next_x = x + item.geometry().width() + space_x
+                line_height = 0
             adjust_height = False
-            if cont_width*0.8 >= cont_height: adjust_height=True
-            if cont_width >= item.maximumSize().width() and cont_height >= item.maximumSize().height():
-                item.setGeometry(QRect(x, y, item.maximumSize().width(), item.maximumSize().height()))
-            elif adjust_height and cont_height <= item.maximumSize().height():
+            max_height = item.maximumSize().height()
+            max_width = item.maximumSize().width()
+            if cont_width*0.8 >= cont_height:
+                adjust_height = True
+            if cont_width >= max_width and cont_height >= max_height:
+                item.setGeometry(QRect(x, y, max_width, max_height))
+            elif adjust_height and cont_height <= max_height:
                 item.setGeometry(QRect(x, y, 1.25*cont_height, cont_height))
             else:
                 item.setGeometry(QRect(x, y, cont_width, 0.8*cont_width))
-            x = nextX
-            lineHeight = max(lineHeight, item.geometry().height())
-        return y + lineHeight - rect.y()
+            x = next_x
+            line_height = max(line_height, item.geometry().height())
+        return y + line_height - rect.y()
 
 
 class QtHandler(logging.Handler):
@@ -724,12 +737,12 @@ class QtHandler(logging.Handler):
         self.widget.appendPlainText(record.msg)
 
 
-def excepthook(excType, excValue, tracebackobj):
+def excepthook(exc_type, exc_value, tracebackobj):
     """
     Global function to catch unhandled exceptions.
 
-    @param excType exception type
-    @param excValue exception value
+    @param exc_type exception type
+    @param exc_value exception value
     @param tracebackobj traceback object
     """
     separator = '-' * 80
@@ -738,7 +751,7 @@ def excepthook(excType, excValue, tracebackobj):
     traceback.print_tb(tracebackobj, None, tbinfofile)
     tbinfofile.seek(0)
     tbinfo = tbinfofile.read()
-    errmsg = '%s: \n%s' % (str(excType), str(excValue))
+    errmsg = '%s: \n%s' % (str(exc_type), str(exc_value))
     sections = [separator, errmsg, separator, tbinfo]
     msg = '\n'.join(sections)
     errorbox = QMessageBox()

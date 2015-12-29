@@ -2,7 +2,6 @@ import numpy as np
 
 
 class Analyser:
-
     def __init__(self, replay):
         if not replay.netstream:
             raise TypeError("Replay has to be decoded")
@@ -13,16 +12,18 @@ class Analyser:
         player = {}
         for frame in self.replay.netstream.values():
             for name, value in frame.actors.items():
-                if "e_Default__PRI_TA" in name and "Engine.PlayerReplicationInfo:Team" in value['data']:
+                if ("e_Default__PRI_TA" in name and
+                        "Engine.PlayerReplicationInfo:Team" in value['data']):
                     try:
                         playername = value['data']['Engine.PlayerReplicationInfo:PlayerName']
                         actorid = value['actor_id']
                         if playername in player:
                             if actorid not in player[playername]['cars']:
                                 player[playername]['cars'].append(value['actor_id'])
-                        else:  # This will break if player of team a leaves and rejoins team b..dunno if that's a thing
+                        else:  # This will break if player of team a leaves and rejoins team b
+                            teamid = value['data']['Engine.PlayerReplicationInfo:Team'][1]
                             player[playername] = {'cars': [value['actor_id']],
-                                                  'team': value['data']['Engine.PlayerReplicationInfo:Team'][1]}
+                                                  'team': teamid}
                     except KeyError:
                         pass
         team_ids = [v['team'] for k, v in player.items()]
@@ -67,14 +68,14 @@ class Analyser:
                 if not found_pos and player_spawned:
                     car_actors.append(car_actors[-1])
                 try:
-                    if frame.actors[str(playerid) + 'e_Default__PRI_TA']\
-                            ['data']['Engine.PlayerReplicationInfo:Team'][1] == -1:
+                    actor_data = frame.actors[str(playerid) + 'e_Default__PRI_TA']['data']
+                    if actor_data['Engine.PlayerReplicationInfo:Team'][1] == -1:
                         # Player got assigned team -1 that means he left the game early
                         frame_left = i
                         break
                 except KeyError:
                     pass
-            result.extend(self.wrap_data(player, car_actors, frame_entered, frame_left, sep))
+            result.extend(self._wrap_data(player, car_actors, frame_entered, frame_left, sep))
         return result
 
     def get_ball_pos(self, sep=False):
@@ -91,13 +92,14 @@ class Analyser:
                         pass
             if not found_ball and data:
                 data.append(data[-1])
-        result = self.wrap_data('Ball', data, 0, max(self.replay.netstream, key=int), sep)
+        result = self._wrap_data('Ball', data, 0, max(self.replay.netstream, key=int), sep)
         return result
 
-    def wrap_data(self, player, data, start, end, slice=False):
+    def _wrap_data(self, player, data, start, end, slicing=False):
         result = []
-        if slice:
-            slice_frames = [v['frame'] - start for v in self.replay.header['Goals'] if start <= v['frame'] <= end]
+        if slicing:
+            slice_frames = [v['frame'] - start for v in self.replay.header['Goals'] if
+                            start <= v['frame'] <= end]
             slice_frames.append(end - start)
             lastframe = 0
             for framenum in slice_frames:
@@ -130,7 +132,7 @@ class Analyser:
                 data_r = self.get_player_pos(reference)
             start = max(data_p[0]['frame_start'], data_r[0]['frame_start'])
             end = min(data_p[0]['frame_end'], data_r[0]['frame_end'])
-            delta = end-start
+            delta = end - start
             pstart = start - data_p[0]['frame_start']
             rstart = start - data_r[0]['frame_start']
             pend = pstart + delta
@@ -139,10 +141,11 @@ class Analyser:
             vec_r = np.array(data_r[0]['data'][rstart:rend])
             timeline = np.linspace(max(data_p[0]['start'], data_r[0]['start']),
                                    min(data_p[0]['end'], data_r[0]['end']),
-                                   end-start)
-            distances = np.linalg.norm(vec_r-vec_p, axis=1)
+                                   end - start)
+            distances = np.linalg.norm(vec_r - vec_p, axis=1)
         else:
-            timeline = np.linspace(data_p[0]['start'], data_p[0]['end'], data_p[0]['frame_end']-data_p[0]['frame_start'])
+            timeline = np.linspace(data_p[0]['start'], data_p[0]['end'],
+                                   data_p[0]['frame_end'] - data_p[0]['frame_start'])
             distances = np.linalg.norm(vec_p, axis=1)
         result = {'xs': timeline,
                   'ys': distances}
@@ -154,9 +157,11 @@ class AnalyserUtils:
     @staticmethod
     def filter_coords(coords):
         result = []
-        for i, coord in enumerate(coords): # TODO This may exlude the borders of Wasteland map
-            y = [x for x, y, z in coord['data'] if z > 0 and -5120 <= y <= 5120 and -4096 <= x <= 4096]
-            x = [y for x, y, z in coord['data'] if z > 0 and -5120 <= y <= 5120 and -4096 <= x <= 4096]
+        for i, coord in enumerate(coords):  # TODO This may exlude the borders of Wasteland map
+            y = [x for x, y, z in coord['data'] if
+                 z > 0 and -5120 <= y <= 5120 and -4096 <= x <= 4096]
+            x = [y for x, y, z in coord['data'] if
+                 z > 0 and -5120 <= y <= 5120 and -4096 <= x <= 4096]
             if not x and y:
                 raise ValueError('No points found')
             player = coord['player']
