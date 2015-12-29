@@ -20,7 +20,7 @@ from PyQt5.QtWidgets import (QSizePolicy, QWidget, QVBoxLayout, QTabWidget, QPla
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
 import plotter
-from pyrope.analyser import Analyser, AnalyserUtils
+from analyser import Analyser, AnalyserUtils
 from pyrope.replay import Replay
 
 
