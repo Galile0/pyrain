@@ -20,22 +20,18 @@ stadium = [(x + 100 if x > 0 else x - 100, y + 100 if y > 0 else y - 100) for x,
             (3685, 4353), (3574, 4464), (3453, 4585), (3342, 4695), (3232, 4805), (3108, 4918), (2981, 5001),
             (2906, 5036), (2842, 5060), (2763, 5081), (2646, 5097)]]  # TODO Hardcode stadium size extension
 
-# avg car size ~118x82x32 ; Field Size: 10240x8192*2000?;
+# avg car size ~118x82x32 ; Field Size(Excluding Wasteland: 10240x8192*(2000?);
 # -5120 - 5120; -4096,4096; 19, 2000
 # bins for ~1:1 mapping:87x100x62
 
 
-def graph_2d(coords):
-    for i, actor in enumerate(coords.values()):
-        fig = plt.figure()
-        filtered = [(x, y) for x, y, z in actor if z > 15]
-        if not filtered:
-            continue
-        ax = fig.add_subplot(111)
-        ax.scatter(*zip(*filtered), c='b', marker='o', s=[10] * len(filtered))
-        ax.plot(*zip(*stadium), c='r')
-        plt.xlim((4477, -4477))
-        plt.ylim((5401, -5401))
+def graph_2d(values, mean=True):
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.plot(values['xs'], values['ys'])
+    if mean:
+        y_mean = [np.mean(values['ys']) for i in values['xs']]
+        ax.plot(values['xs'], y_mean, linestyle='--')
     plt.show()
 
 

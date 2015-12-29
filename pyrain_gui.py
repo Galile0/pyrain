@@ -347,6 +347,8 @@ class PyRainGui(QMainWindow):
         self.highlight_plots()
 
     def popout_plots(self):
+        plotter.graph_2d(self.analyser.calc_dist_to_zero(self.cmb_player.currentText(), reference='Ball'))
+        return
         items = self.lst_plots.selectedItems()
         if not items:
             return

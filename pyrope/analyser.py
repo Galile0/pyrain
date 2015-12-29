@@ -1,3 +1,6 @@
+import numpy as np
+
+
 class Analyser:
 
     def __init__(self, replay):
@@ -101,13 +104,49 @@ class Analyser:
                 result.append({'player': player,
                                'start': self.replay.netstream[lastframe].current,
                                'end': self.replay.netstream[framenum].current,
+                               'frame_start': lastframe,
+                               'frame_end': framenum,
                                'data': data[lastframe:framenum]})
                 lastframe = framenum
         else:
             result.append({'player': player,
                            'start': self.replay.netstream[start].current,
                            'end': self.replay.netstream[end].current,
+                           'frame_start': start,
+                           'frame_end': end,
                            'data': data[:-1]})
+        return result
+
+    def calc_dist_to_zero(self, player, reference=None):
+        if player == 'Ball':
+            data_p = self.get_ball_pos()
+        else:
+            data_p = self.get_player_pos(player)
+        vec_p = np.array(data_p[0]['data'])
+        if reference:
+            if reference == 'Ball':
+                data_r = self.get_ball_pos()
+            else:
+                data_r = self.get_player_pos(reference)
+            start = max(data_p[0]['frame_start'], data_r[0]['frame_start'])
+            end = min(data_p[0]['frame_end'], data_r[0]['frame_end'])
+            delta = end-start
+            pstart = start - data_p[0]['frame_start']
+            rstart = start - data_r[0]['frame_start']
+            pend = pstart + delta
+            rend = rstart + delta
+            vec_p = vec_p[pstart:pend]
+            vec_r = np.array(data_r[0]['data'][rstart:rend])
+            timeline = np.linspace(max(data_p[0]['start'], data_r[0]['start']),
+                                   min(data_p[0]['end'], data_r[0]['end']),
+                                   end-start)
+            distances = np.linalg.norm(vec_r-vec_p, axis=1)
+        else:
+            timeline = np.linspace(data_p[0]['start'], data_p[0]['end'], data_p[0]['frame_end']-data_p[0]['frame_start'])
+            distances = np.linalg.norm(vec_p, axis=1)
+        result = {'xs': timeline,
+                  'ys': distances}
+        # print(len(result))
         return result
 
 
@@ -115,9 +154,9 @@ class AnalyserUtils:
     @staticmethod
     def filter_coords(coords):
         result = []
-        for i, coord in enumerate(coords):
-            y = [x for x, y, z in coord['data'] if z > 15 and -5120 <= y <= 5120 and -4096 <= x <= 4096]
-            x = [y for x, y, z in coord['data'] if z > 15 and -5120 <= y <= 5120 and -4096 <= x <= 4096]
+        for i, coord in enumerate(coords): # TODO This may exlude the borders of Wasteland map
+            y = [x for x, y, z in coord['data'] if z > 0 and -5120 <= y <= 5120 and -4096 <= x <= 4096]
+            x = [y for x, y, z in coord['data'] if z > 0 and -5120 <= y <= 5120 and -4096 <= x <= 4096]
             if not x and y:
                 raise ValueError('No points found')
             player = coord['player']
