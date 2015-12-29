@@ -21,7 +21,7 @@ stadium = [(x + 100 if x > 0 else x - 100, y + 100 if y > 0 else y - 100) for x,
             (4043, 3838), (4017, 3919), (3989, 3984), (3900, 4127), (3796, 4243), (3685, 4353),
             (3574, 4464), (3453, 4585), (3342, 4695), (3232, 4805), (3108, 4918), (2981, 5001),
             (2906, 5036), (2842, 5060), (2763, 5081), (2646, 5097)]]
-# TODO Hardcode stadium size extension
+# TODO Hardcode stadium size extension and make something for wasteland
 
 
 # avg car size ~118x82x32 ; Field Size(Excluding Wasteland: 10240x8192*(2000?);

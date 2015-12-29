@@ -476,8 +476,8 @@ class PyRainGui(QMainWindow):
 
     def import_data(self):
         home = path.expanduser('~')
-        # replay_folder = home+'\\My Games\\\Rocket League\\TAGame\\Demos'
-        replay_folder = path.dirname(path.realpath(__file__))+'\\testfiles'  # TODO DEV ONLY
+        replay_folder = home+'\\My Games\\\Rocket League\\TAGame\\Demos'
+        # replay_folder = path.dirname(path.realpath(__file__))+'\\testfiles'
         if not path.isdir(replay_folder):
             replay_folder = home
         ext = 'Replay (*.pyrope *.replay)'
@@ -746,7 +746,7 @@ def excepthook(exc_type, exc_value, tracebackobj):
     @param tracebackobj traceback object
     """
     separator = '-' * 80
-    notice = "Exception encountered\n"  # TODO MORE INFOS
+    notice = "Error\n"
     tbinfofile = StringIO()
     traceback.print_tb(tracebackobj, None, tbinfofile)
     tbinfofile.seek(0)
