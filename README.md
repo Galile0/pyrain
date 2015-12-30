@@ -12,13 +12,19 @@ This project aims to provide a graphical analysis of matches from Rocketleague r
 
 # Installation
 
+## From binary
+Binaries are Windows only currently. In theory it should run on every Version (7/10 32/64 Bit) but I didn't had the patience to setup a VM for each combination and test it myself. So try it out and report errors you may encounter
+To get the latest Release go to the release tab of this github repo and grab the latest binary zip. Just run the pyrain.exe and you should be good to go.
+
 ## From source
 * Clone repository
 * install requirements (Grab pyrope from my other repo, its not on pypi yet)
 * run pyrain_gui.py
 
-## From binary
-In the works, i literally just put it online. Give me some time man ...
+# Known Bugs
+
+* Wasteland Maps have a different shape and won't get represented properly. This will get fixed with 1.1
+* Mutators will produce errors. This is a missing feature of pyrope, the replay parsing lib
 
 # In the works
 * Distance plots

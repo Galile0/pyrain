@@ -476,8 +476,8 @@ class PyRainGui(QMainWindow):
 
     def import_data(self):
         home = path.expanduser('~')
-        # replay_folder = home+'\\Documents\\My Games\\\Rocket League\\TAGame\\Demos'
-        replay_folder = path.dirname(path.realpath(__file__))+'\\testfiles'
+        replay_folder = home+'\\Documents\\My Games\\\Rocket League\\TAGame\\Demos'
+        # replay_folder = path.dirname(path.realpath(__file__))+'\\testfiles'
         if not path.isdir(replay_folder):
             replay_folder = home
         ext = 'Replay (*.pyrope *.replay)'
