@@ -476,8 +476,8 @@ class PyRainGui(QMainWindow):
 
     def import_data(self):
         home = path.expanduser('~')
-        replay_folder = home+'\\My Games\\\Rocket League\\TAGame\\Demos'
-        # replay_folder = path.dirname(path.realpath(__file__))+'\\testfiles'
+        # replay_folder = home+'\\Documents\\My Games\\\Rocket League\\TAGame\\Demos'
+        replay_folder = path.dirname(path.realpath(__file__))+'\\testfiles'
         if not path.isdir(replay_folder):
             replay_folder = home
         ext = 'Replay (*.pyrope *.replay)'
@@ -526,13 +526,16 @@ class PyRainGui(QMainWindow):
     def show_progress(self):
         num_frames = self.replay.header['NumFrames']-1
         progress = ProgressDialog(self, num_frames)
-
         ti = ThreadedImport(self, self.replay)
         ti.progress.connect(progress.set_value)
         ti.done.connect(self.netstream_loaded)
+        ti.exception.connect(lambda e: [progress.close(), self.netstream_error(e)])
         progress.btn_cancel.clicked.connect(ti.setstop)
         progress.show()
         ti.start()
+
+    def netstream_error(self, exc):
+        raise exc
 
     def netstream_loaded(self):
         logger.info('Netstream Parsed. No Errors found')
@@ -595,6 +598,7 @@ class ProgressDialog(QDialog):
 class ThreadedImport(QThread):
     progress = pyqtSignal(int)
     done = pyqtSignal()
+    exception = pyqtSignal(Exception)
 
     def __init__(self, parent, replay):
         QThread.__init__(self, parent)
@@ -605,18 +609,17 @@ class ThreadedImport(QThread):
         qout = Queue()
         parse_thread = Thread(target=self.replay.parse_netstream, args=(qout, self.stop))
         parse_thread.start()
-        while True:
+        while not self.stop.isSet():
             if qout.empty():
                 sleep(0.1)
                 continue
             msg = qout.get()
             if msg == 'done':
                 self.done.emit()
-                break
+                return
             elif msg == 'exception':
                 exc = qout.get()
-                raise exc
-            elif msg == 'abort':
+                self.exception.emit(exc)
                 return
             else:
                 self.progress.emit(msg)
