@@ -756,6 +756,8 @@ def excepthook(exc_type, exc_value, tracebackobj):
     tbinfo = tbinfofile.read()
     errmsg = '%s: \n%s' % (str(exc_type), str(exc_value))
     sections = [separator, errmsg, separator, tbinfo]
+    with open('error.log', mode='w', encoding='utf-8') as outfile:
+        json.dump(exc_value.args, outfile, indent=2, ensure_ascii=False)
     msg = '\n'.join(sections)
     errorbox = QMessageBox()
     errorbox.setText(str(notice)+str(msg))
