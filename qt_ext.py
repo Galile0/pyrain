@@ -87,20 +87,20 @@ class FlowLayout(QLayout):
                 y = y + line_height + space_y
                 next_x = x + item.geometry().width() + space_x
                 line_height = 0
-            if not testonly:
-                adjust_height = cont_width*0.8 >= cont_height
-                max_height = item.maximumSize().height()
-                max_width = item.maximumSize().width()
+            max_height = item.maximumSize().height()
+            max_width = item.maximumSize().width()
+            if not testonly and max_width and max_height:
                 scale_width = max_width/max_height
                 scale_height = max_height/max_width
+                adjust_height = cont_width*scale_height >= cont_height
                 if cont_width >= max_width and cont_height >= max_height:
                     item.setGeometry(QRect(x, y, max_width, max_height))
                 elif adjust_height and cont_height <= max_height:
                     item.setGeometry(QRect(x, y, scale_width*cont_height, cont_height))
                 else:
                     item.setGeometry(QRect(x, y, cont_width, scale_height*cont_width))
-                x = next_x
-                line_height = max(line_height, item.geometry().height())
+            x = next_x
+            line_height = max(line_height, item.geometry().height())
         return y + line_height - rect.y()
 
 
