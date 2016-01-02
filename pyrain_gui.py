@@ -34,7 +34,7 @@ class PyRainGui(QMainWindow):
         logger.info('Setup Completed. Welcome to PyRain')
 
     def setup_ui(self):
-        self.resize(720, 900)
+        self.resize(1280, 530)
         size_policy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         size_policy.setHorizontalStretch(0)
         size_policy.setVerticalStretch(0)

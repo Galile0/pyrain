@@ -98,10 +98,10 @@ class Analyser:
     def _wrap_data(self, player, data, start, end, slicing=False):
         result = []
         if slicing:
-            slice_frames = [v['frame'] - start for v in self.replay.header['Goals'] if
+            slice_frames = [v['frame'] for v in self.replay.header['Goals'] if
                             start <= v['frame'] <= end]
-            slice_frames.append(end - start)
-            lastframe = 0
+            slice_frames.append(end)
+            lastframe = start
             for framenum in slice_frames:
                 result.append({'player': player,
                                'start': self.replay.netstream[lastframe].current,
