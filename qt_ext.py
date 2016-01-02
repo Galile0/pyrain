@@ -5,6 +5,7 @@ from PyQt5.QtCore import Qt, QRect, QSize
 
 class FlowLayout(QLayout):
     # TODO SHIT GETS LAGGY WITH LOTS OF MPL Figures
+    # Possible Solution: Resize only after resize event is done and not immediately
     def __init__(self, parent=None, container=None, resize_threshold=(0, 0), margin=0, spacing=-1):
         super(FlowLayout, self).__init__(parent)
         if parent is not None:
@@ -89,7 +90,7 @@ class FlowLayout(QLayout):
                 line_height = 0
             max_height = item.maximumSize().height()
             max_width = item.maximumSize().width()
-            if not testonly and max_width and max_height:
+            if max_width or max_height:
                 scale_width = max_width/max_height
                 scale_height = max_height/max_width
                 adjust_height = cont_width*scale_height >= cont_height
