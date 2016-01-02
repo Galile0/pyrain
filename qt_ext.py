@@ -5,7 +5,6 @@ from PyQt5.QtCore import Qt, QRect, QSize
 
 class FlowLayout(QLayout):
     # TODO SHIT GETS LAGGY WITH LOTS OF MPL Figures
-    # TODO ASPECT RATIO IS HARDCODED. BETTER TAKE IT FROM WIDGETS WidthForHeight
     def __init__(self, parent=None, container=None, resize_threshold=(0, 0), margin=0, spacing=-1):
         super(FlowLayout, self).__init__(parent)
         if parent is not None:
@@ -88,19 +87,20 @@ class FlowLayout(QLayout):
                 y = y + line_height + space_y
                 next_x = x + item.geometry().width() + space_x
                 line_height = 0
-            adjust_height = False
-            max_height = item.maximumSize().height()
-            max_width = item.maximumSize().width()
-            if cont_width*0.8 >= cont_height:
-                adjust_height = True
-            if cont_width >= max_width and cont_height >= max_height:
-                item.setGeometry(QRect(x, y, max_width, max_height))
-            elif adjust_height and cont_height <= max_height:
-                item.setGeometry(QRect(x, y, 1.25*cont_height, cont_height))
-            else:
-                item.setGeometry(QRect(x, y, cont_width, 0.8*cont_width))
-            x = next_x
-            line_height = max(line_height, item.geometry().height())
+            if not testonly:
+                adjust_height = cont_width*0.8 >= cont_height
+                max_height = item.maximumSize().height()
+                max_width = item.maximumSize().width()
+                scale_width = max_width/max_height
+                scale_height = max_height/max_width
+                if cont_width >= max_width and cont_height >= max_height:
+                    item.setGeometry(QRect(x, y, max_width, max_height))
+                elif adjust_height and cont_height <= max_height:
+                    item.setGeometry(QRect(x, y, scale_width*cont_height, cont_height))
+                else:
+                    item.setGeometry(QRect(x, y, cont_width, scale_height*cont_width))
+                x = next_x
+                line_height = max(line_height, item.geometry().height())
         return y + line_height - rect.y()
 
 
