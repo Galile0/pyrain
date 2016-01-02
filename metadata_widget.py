@@ -8,15 +8,13 @@ from PyQt5.QtCore import QSize
 
 class MetadataWidget(QWidget):
 
-    def __init__(self, replay=None, parent=None):
+    def __init__(self, parent=None):
         super().__init__(parent)
         self.setEnabled(False)
         self.lst_meta = None  # Attribute List
         self.txt_meta = None  # TextWidget for Attribute Display
         self.meta_attributes = None
         self._generate_widget()
-        if replay:
-            self.set_replay(replay)
 
     def set_replay(self, replay):
         self.replay = replay

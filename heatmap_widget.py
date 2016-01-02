@@ -1,6 +1,8 @@
 from os import path
 import math
 import logging
+
+from PyQt5.QtGui import QPalette, QColor
 from PyQt5.QtWidgets import (QGridLayout, QSizePolicy, QScrollArea, QWidget, QLabel, QComboBox,
                              QPushButton, QGroupBox, QSpacerItem, QListWidget, QAbstractItemView,
                              QFrame, QSlider, QCheckBox, QDialog, QVBoxLayout, QFileDialog)
@@ -339,21 +341,27 @@ class HeatmapWidget(QWidget):
         bins = (math.ceil(scale*15), math.ceil(scale*12))
         log = self.chk_logscale.isChecked()
         plot = plotter.generate_figure(self.datasets[datasetname],
+                                       draw_map=[plotter.ARENA_OUTLINE,
+                                                 plotter.ARENA_FIELDLINE,
+                                                 plotter.ARENA_BOOST],
                                        bins=bins,
                                        norm=log,
                                        interpolate=interpolate,
                                        hexbin=hexbin)
         frm = QFrame()
         frm.setContentsMargins(0, 0, 0, 0)
-        frm.setMinimumSize(QSize(300, 240))
-        frm.setMaximumSize(QSize(515, 412))
+        frm.setMinimumSize(QSize(280, 199))
+        frm.setMaximumSize(QSize(650, 462))
         frm.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
         frm.setLineWidth(3)
+        palette = QPalette()
+        palette.setColor(QPalette.Foreground, QColor(Qt.green))
+        frm.setPalette(palette)
         frml = QVBoxLayout(frm)
         frml.setContentsMargins(0, 0, 0, 0)
         fig = FigureCanvas(plot)
-        fig.mpl_connect('scroll_event', lambda evt: self.hm_sa.verticalScrollBar().setValue(
-                self.hm_sa.verticalScrollBar().value()+int(evt.step)*-60))  # TODO Well, it works
+        fig.mpl_connect('scroll_event', lambda evt: self.scroll_area.verticalScrollBar().setValue(
+                self.scroll_area.verticalScrollBar().value()+int(evt.step)*-60))
         fig.setContentsMargins(0, 0, 0, 0)
         frml.addWidget(fig)
         self.drawn_plots[datasetname] = frm
