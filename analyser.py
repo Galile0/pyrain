@@ -98,17 +98,17 @@ class Analyser:
     def _wrap_data(self, player, data, start, end, slicing=False):
         result = []
         if slicing:
-            slice_frames = [v['frame'] - start for v in self.replay.header['Goals'] if
+            slice_frames = [v['frame'] for v in self.replay.header['Goals'] if
                             start <= v['frame'] <= end]
-            slice_frames.append(end - start)
-            lastframe = 0
+            slice_frames.append(end)
+            lastframe = start
             for framenum in slice_frames:
                 result.append({'player': player,
                                'start': self.replay.netstream[lastframe].current,
                                'end': self.replay.netstream[framenum].current,
                                'frame_start': lastframe,
                                'frame_end': framenum,
-                               'data': data[lastframe:framenum]})
+                               'data': data[lastframe-start:framenum-start]})
                 lastframe = framenum
         else:
             result.append({'player': player,
@@ -157,11 +157,9 @@ class AnalyserUtils:
     @staticmethod
     def filter_coords(coords):
         result = []
-        for i, coord in enumerate(coords):  # TODO This may exlude the borders of Wasteland map
-            y = [x for x, y, z in coord['data'] if
-                 z > 0 and -5120 <= y <= 5120 and -4096 <= x <= 4096]
-            x = [y for x, y, z in coord['data'] if
-                 z > 0 and -5120 <= y <= 5120 and -4096 <= x <= 4096]
+        for i, coord in enumerate(coords):
+            y = [x for x, y, z in coord['data'] if z > 0]
+            x = [y for x, y, z in coord['data'] if z > 0]
             if not x and y:
                 raise ValueError('No points found')
             player = coord['player']
