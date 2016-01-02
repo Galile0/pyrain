@@ -108,7 +108,7 @@ class Analyser:
                                'end': self.replay.netstream[framenum].current,
                                'frame_start': lastframe,
                                'frame_end': framenum,
-                               'data': data[lastframe:framenum]})
+                               'data': data[lastframe-start:framenum-start]})
                 lastframe = framenum
         else:
             result.append({'player': player,
@@ -157,11 +157,9 @@ class AnalyserUtils:
     @staticmethod
     def filter_coords(coords):
         result = []
-        for i, coord in enumerate(coords):  # TODO This may exlude the borders of Wasteland map
-            y = [x for x, y, z in coord['data'] if
-                 z > 0 and -5120 <= y <= 5120 and -4096 <= x <= 4096]
-            x = [y for x, y, z in coord['data'] if
-                 z > 0 and -5120 <= y <= 5120 and -4096 <= x <= 4096]
+        for i, coord in enumerate(coords):
+            y = [x for x, y, z in coord['data'] if z > 0]
+            x = [y for x, y, z in coord['data'] if z > 0]
             if not x and y:
                 raise ValueError('No points found')
             player = coord['player']

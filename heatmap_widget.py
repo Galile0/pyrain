@@ -16,7 +16,7 @@ import plotter
 
 class HeatmapWidget(QWidget):
 
-    def __init__(self, replay=None, parent=None):
+    def __init__(self, parent=None):
         super().__init__(parent)
         self.setEnabled(False)
         self.logger = logging.getLogger('pyrain')
@@ -34,8 +34,7 @@ class HeatmapWidget(QWidget):
         self.chk_logscale = None  # Scale Logarithmic
         self.sld_res = None  # Bin Scaling for plots
         self._generate_widget()
-        if replay:
-            self.set_replay(replay)
+        self.replay = None
 
     def set_replay(self, replay):
         self.replay = replay
@@ -44,6 +43,16 @@ class HeatmapWidget(QWidget):
         self.cmb_player.clear()
         self.cmb_player.insertItems(0, [k for k in self.analyser.player.keys()])
         self.cmb_player.addItem('Ball')
+
+        self._clear_plots()
+        self.lst_plots.clear()
+        self.frm_settings.setEnabled(True)
+        self.frm_plots.setEnabled(True)
+        self.btn_addplot.setEnabled(False)
+        self.btn_removeplot.setEnabled(False)
+        self.btn_updateplot.setEnabled(False)
+        self.datasets = {}
+        self.drawn_plots = {}
         self.setEnabled(True)
 
     def _generate_widget(self):
@@ -141,15 +150,11 @@ class HeatmapWidget(QWidget):
 
         lbl_style = QLabel(frame)
         size_policy = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
-        size_policy.setHorizontalStretch(0)
-        size_policy.setVerticalStretch(0)
-        size_policy.setHeightForWidth(lbl_style.sizePolicy().hasHeightForWidth())
         lbl_style.setSizePolicy(size_policy)
         lbl_style.setText('Style:')
         grid.addWidget(lbl_style, 0, 0, 1, 1)
 
         self.cmb_style = QComboBox(frame)
-        self.cmb_style.setAutoFillBackground(False)
         self.cmb_style.setEditable(False)
         self.cmb_style.insertItems(0, ['Hexbin', 'Histogram - Blur', 'Histogram - Clear'])
         self.cmb_style.setCurrentIndex(0)
@@ -259,7 +264,6 @@ class HeatmapWidget(QWidget):
 
     def _clear_plots(self):
         count = self.lst_plots.count()
-        print(count)
         for i in range(count):
             item_name = self.lst_plots.item(i).text()
             if item_name in self.drawn_plots:
@@ -337,21 +341,28 @@ class HeatmapWidget(QWidget):
             hexbin = True
         if 'Blur' in plt_type:
             interpolate = True
+        if 'Wasteland' in self.replay.header['MapName']:
+            arena = plotter.WASTELAND
+            overlays = [plotter.OUTLINE, plotter.FIELDLINE]  # TODO MAKE OPTION IN GUI
+        else:
+            arena = plotter.STANDARD
+            overlays = [plotter.OUTLINE, plotter.FIELDLINE, plotter.BOOST]
         scale = self.sld_res.value()/10
-        bins = (math.ceil(scale*15), math.ceil(scale*12))
+        bins = (math.ceil(scale*15), math.ceil(scale*15*arena['aspect']))
         log = self.chk_logscale.isChecked()
         plot = plotter.generate_figure(self.datasets[datasetname],
-                                       draw_map=[plotter.ARENA_OUTLINE,
-                                                 plotter.ARENA_FIELDLINE,
-                                                 plotter.ARENA_BOOST],
+                                       arena,
+                                       overlays=overlays,
                                        bins=bins,
                                        norm=log,
                                        interpolate=interpolate,
                                        hexbin=hexbin)
+        size_min = QSize(280, arena['aspect']*280)
+        size_max = QSize(650, arena['aspect']*650)
         frm = QFrame()
         frm.setContentsMargins(0, 0, 0, 0)
-        frm.setMinimumSize(QSize(280, 199))
-        frm.setMaximumSize(QSize(650, 462))
+        frm.setMinimumSize(size_min)
+        frm.setMaximumSize(size_max)
         frm.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
         frm.setLineWidth(3)
         palette = QPalette()
