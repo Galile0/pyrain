@@ -119,7 +119,7 @@ class Analyser:
                            'data': data[:-1]})
         return result
 
-    def calc_dist_to_zero(self, player, reference=None):
+    def calc_dist(self, player, reference=None):
         if player == 'Ball':
             data_p = self.get_ball_pos()
         else:
@@ -133,6 +133,8 @@ class Analyser:
             start = max(data_p[0]['frame_start'], data_r[0]['frame_start'])
             end = min(data_p[0]['frame_end'], data_r[0]['frame_end'])
             delta = end - start
+            if delta <= 0:
+                return None
             pstart = start - data_p[0]['frame_start']
             rstart = start - data_r[0]['frame_start']
             pend = pstart + delta
@@ -147,9 +149,8 @@ class Analyser:
             timeline = np.linspace(data_p[0]['start'], data_p[0]['end'],
                                    data_p[0]['frame_end'] - data_p[0]['frame_start'])
             distances = np.linalg.norm(vec_p, axis=1)
-        result = {'xs': timeline,
-                  'ys': distances}
-        # print(len(result))
+        result = {'time': timeline,
+                  'distance': distances}
         return result
 
 
