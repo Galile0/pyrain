@@ -1,4 +1,5 @@
 import numpy as np
+import pprint
 
 
 class Analyser:
@@ -6,9 +7,16 @@ class Analyser:
         if not replay.netstream:
             raise TypeError("Replay has to be decoded")
         self.replay = replay
-        self.player = self._get_player()
+        self.player_data = self._get_player()
 
-    def _get_player(self):  # Todo add check that frames are actually parsed
+    def get_actor_pos(self, name, sep=False):
+        if name == 'Ball':
+            pos = self._get_ball_pos(sep)
+        else:
+            pos = self._get_player_pos(name, sep)
+        return pos
+
+    def _get_player(self):
         player = {}
         for frame in self.replay.netstream.values():
             for name, value in frame.actors.items():
@@ -22,7 +30,7 @@ class Analyser:
                                 player[playername]['cars'].append(value['actor_id'])
                         else:  # This will break if player of team a leaves and rejoins team b
                             teamid = value['data']['Engine.PlayerReplicationInfo:Team'][1]
-                            player[playername] = {'cars': [value['actor_id']],
+                            player[playername] = {'id': [value['actor_id']],
                                                   'team': teamid}
                     except KeyError:
                         pass
@@ -38,8 +46,8 @@ class Analyser:
                 raise ValueError("THREE TEAMS?! NOT POSSIBLE!")
         return player
 
-    def get_player_pos(self, player, sep=False):
-        playerids = self.player[player]['cars']
+    def _get_player_pos(self, player, sep=False):
+        playerids = self.player_data[player]['id']
         result = []
         for playerid in playerids:
             current_car = -1
@@ -78,7 +86,7 @@ class Analyser:
             result.extend(self._wrap_data(player, car_actors, frame_entered, frame_left, sep))
         return result
 
-    def get_ball_pos(self, sep=False):
+    def _get_ball_pos(self, sep=False):
         data = []
         for num, frame in self.replay.netstream.items():
             found_ball = False
@@ -156,20 +164,25 @@ class Analyser:
 
 class AnalyserUtils:
     @staticmethod
-    def filter_coords(coords):
+    def filter_coords(coords, x, y, z):
         result = []
-        for i, coord in enumerate(coords):
-            y = [x for x, y, z in coord['data'] if z > 0]
-            x = [y for x, y, z in coord['data'] if z > 0]
-            if not x and y:
-                raise ValueError('No points found')
+        for coord in coords:
             player = coord['player']
             if len(player) > 20:
                 player = player[0:9] + ' ... ' + player[-6:]
             title = "%s From: %ds To: %ds" % (player, coord['start'], coord['end'])
             title_short = "%s [%d - %d]" % (coord['player'], coord['start'], coord['end'])
-            result.append({'x': x,
-                           'y': y,
-                           'title': title,
+            result.append({'title': title,
                            'title_short': title_short})
+            if y:
+                y_coords = [x for x, y, z in coord['data'] if z > 0]
+                result[-1]['y'] = y_coords
+            if x:
+                x_coords = [y for x, y, z in coord['data'] if z > 0]
+                result[-1]['x'] = x_coords
+            if z:
+                z_coords = [z for x, y, z in coord['data'] if z > 0]
+                result[-1]['z'] = z_coords
+            if not len(x) == len(y):
+                raise ValueError('Wrong Dimensions')
         return result
