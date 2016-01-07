@@ -129,7 +129,8 @@ class PyRainGui(QMainWindow):
                     json.dump(self.replay.header, outfile, indent=2, ensure_ascii=False)
             elif 'Netstream' in filename[1]:
                 if not self.replay.netstream:
-                    return  # TODO LOG ERROR
+                    logger.error('Netstream not parsed')
+                    return
                 with open(filename[0], 'w', encoding='utf-8') as outfile:
                     outfile.write(self.replay.netstream_to_json())
 
@@ -157,9 +158,9 @@ class PyRainGui(QMainWindow):
                 else:
                     logger.warn('Netstream not Parsed. Only Metadata for view available')
             elif ext == 'pyrope':
-                start = time()
+                # start = time()
                 self.replay = pickle.load(open(fname[0], 'rb'))
-                print("UNPICKLING: %f" % (time()-start))
+                # print("UNPICKLING: %f" % (time()-start))
                 logger.info('pyrain Parsed Replay File sucessfully loaded')
                 self.netstream_loaded()
             self.meta_tab.set_replay(self.replay)

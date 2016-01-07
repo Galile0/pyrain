@@ -133,21 +133,15 @@ class Analyser:
         return result
 
     def calc_dist(self, player, reference=None):
-        if player == 'Ball':
-            data_p = self.get_ball_pos()
-        else:
-            data_p = self.get_player_pos(player)
+        data_p = self.get_actor_pos(player)
         vec_p = np.array(data_p[0]['data'])  # TODO that only views single Player Ids (no rejoin?)
         if reference:
-            if reference == 'Ball':
-                data_r = self.get_ball_pos()
-            else:
-                data_r = self.get_player_pos(reference)
+            data_r = self.get_actor_pos(reference)
             start = max(data_p[0]['frame_start'], data_r[0]['frame_start'])
             end = min(data_p[0]['frame_end'], data_r[0]['frame_end'])
             delta = end - start
             if delta <= 0:
-                return None
+                raise ValueError('Actors do not Overlap')
             pstart = start - data_p[0]['frame_start']
             rstart = start - data_r[0]['frame_start']
             pend = pstart + delta

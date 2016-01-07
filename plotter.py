@@ -49,6 +49,17 @@ def graph_2d(values, mean=True):
     plt.show()
 
 
+def lines2d(x, y, ax, mean=True):
+    lines = []
+    l, = ax.plot(x, y)
+    lines.append(l)
+    if mean:
+        y_mean = [np.mean(y) for i in x]
+        l, = ax.plot(x, y_mean, linestyle='--')
+        lines.append(l)
+    return lines
+
+
 def generate_figure(data, arena, overlays=None, bins=(25, 12), hexbin=False, interpolate=True,
                     norm=False):
     fig = Figure()
