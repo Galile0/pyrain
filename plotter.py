@@ -1,8 +1,11 @@
 import logging
-from matplotlib.colors import LogNorm
+
+from cycler import cycler
+from matplotlib.colors import LogNorm, rgb2hex
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 import numpy as np
+from itertools import chain
 
 logger = logging.getLogger('pyrain')
 
@@ -105,3 +108,15 @@ def generate_figure(data, arena, overlays=None, bins=(25, 12), hexbin=False, int
     fig.subplots_adjust(hspace=0, wspace=0, right=1, top=0.9, bottom=0.05, left=0)
     fig.patch.set_facecolor((0, 0, .5))
     return fig
+
+
+def set_colormap(ax, colors=10, double=True):
+    cm = plt.get_cmap('gist_rainbow')
+    if double:
+        cycle = list(chain.from_iterable((cm(1.*i/colors), cm(1.*i/colors)) for i in range(colors)))
+    else:
+        cycle = [cm(1.*i/colors) for i in range(colors)]
+    ax.set_prop_cycle(cycler('color', cycle))
+
+def get_rgb(line):
+    return rgb2hex(line.get_color())
