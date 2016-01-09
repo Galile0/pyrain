@@ -9,6 +9,8 @@ from matplotlib.figure import Figure
 import plotter
 import itertools
 
+from rangeslider import QRangeSlider
+
 
 class DistanceWidget(QWidget):
 
@@ -52,9 +54,9 @@ class DistanceWidget(QWidget):
             self.cmb_ref.insertItems(0, self.overlaps[text])
 
     def _generate_widget(self):
-        layout_main = QHBoxLayout(self)
+        layout_main = QGridLayout(self)
 
-        layout_main.addWidget(self._setup_controls())
+        layout_main.addWidget(self._setup_controls(), 0, 0, 2, 1)
 
         frm_plot = QFrame(self)
         frm_plot.setFrameStyle(0x36)
@@ -67,7 +69,28 @@ class DistanceWidget(QWidget):
         self.canvas = FigureCanvas(fig)
         self.canvas.setVisible(False)
         plot_layout.addWidget(self.canvas)
-        layout_main.addWidget(frm_plot)
+        layout_main.addWidget(frm_plot, 0, 1, 1, 1)
+
+        self.range = QRangeSlider(self)
+        self.range.setMin(500)
+        self.range.setMax(0)
+        # self.range.setMax(20)
+        # self.range.setRange(0, 20)
+        self.range.startValueChanged.connect(self._set_xmin)
+        self.range.endValueChanged.connect(self._set_xmax)
+        self.range.setFixedHeight(30)
+        self.range.setBackgroundStyle("""
+                                         #Head {
+                                             border: 2px #65737e;
+                                             border-style: solid none solid solid;
+                                         }
+                                         #Tail {
+                                             border: 2px #65737e;
+                                             border-style: solid solid solid none;
+                                         }
+                                      """)
+        self.range.setVisible(False)
+        layout_main.addWidget(self.range, 1, 1, 1, 1)
 
     def _setup_controls(self):
         groupbox = QGroupBox(self)
@@ -174,6 +197,8 @@ class DistanceWidget(QWidget):
 
     def _show_plot(self):
         self.canvas.setVisible(True)
+        self.range.setVisible(True)
+        self.ax.autoscale(enable=True, axis='both', tight=True)
         for item in self.lst_plots.selectedItems():
             for plot in self.plots[item.text()]:
                 if plot not in self.ax.lines:
@@ -182,6 +207,7 @@ class DistanceWidget(QWidget):
             item.setBackground(QBrush(QColor(color)))
         self.canvas.draw()
         self.canvas.figure.tight_layout()
+        self._update_range()
         self._toggle_buttons()
 
     def _hide_plot(self):
@@ -205,3 +231,22 @@ class DistanceWidget(QWidget):
                     self.buttons['hide'].setEnabled(True)
                 else:
                     self.buttons['show'].setEnabled(True)
+
+    def _set_xmin(self, val):
+        self.ax.set_xlim(left=val)
+        self.canvas.draw()
+
+    def _set_xmax(self, val):
+        self.ax.set_xlim(right=val)
+        self.canvas.draw()
+
+    def _update_range(self):
+        xlim = self.ax.get_xlim()
+        xlim = [int(xlim[0]), int(xlim[1])]
+        if xlim[0] <= self.range.min():
+            self.range.setMin(xlim[0])
+            self.range.setStart(xlim[0])
+        if xlim[1] >= self.range.max():
+            self.range.setMax(xlim[1])
+            self.range.setEnd(xlim[1])
+        self.range.repaint()
