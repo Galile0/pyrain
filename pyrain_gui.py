@@ -8,12 +8,15 @@ from os import path
 from queue import Queue
 from threading import Thread, Event
 from io import StringIO
-from time import sleep
+from time import sleep, time
 
 from PyQt5.QtCore import QSize, Qt, QRect, QThread, pyqtSignal
 from PyQt5.QtWidgets import (QSizePolicy, QWidget, QVBoxLayout, QTabWidget, QPlainTextEdit,
                              QLayout, QPushButton, QMenuBar, QMenu, QAction, QDialog, QApplication,
                              QProgressBar, QMessageBox, QFileDialog, QMainWindow)
+
+from analyser import Analyser
+from distance_widget import DistanceWidget
 from qt_ext import QtHandler
 from heatmap_widget import HeatmapWidget
 from metadata_widget import MetadataWidget
@@ -58,6 +61,9 @@ class PyRainGui(QMainWindow):
         self.heatmap_tab = HeatmapWidget(parent=tabview)
         self.heatmap_tab.setMinimumSize(QSize(0, 380))
         tabview.addTab(self.heatmap_tab, "Heatmaps")
+
+        self.distance_tab = DistanceWidget(parent=tabview)
+        tabview.addTab(self.distance_tab, "Distances")
 
         self.txt_log = QPlainTextEdit(self.centralwidget)
         size_policy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
@@ -107,13 +113,14 @@ class PyRainGui(QMainWindow):
 
     def export_data(self):
         if not self.replay:
-            return  # TODO LOG ERROR
+            logger.error("Nothing to Export")
+            return
         folder = path.dirname(path.realpath(__file__))
         ext = 'Replay (*.pyrope);;MetaData (*.json);;Header (*.json);;Netstream (*.json)'
         filename = QFileDialog.getSaveFileName(self, 'Export Replay', folder, ext)
         if filename[0]:
             if 'Replay' in filename[1]:
-                pickle.dump(self.replay, open(filename[0], 'wb'))
+                pickle.dump(self.replay, open(filename[0], 'wb'), protocol=-1)
             elif 'MetaData' in filename[1]:
                 with open(filename[0], 'w', encoding='utf-8') as outfile:
                     outfile.write(self.replay.metadata_to_json())
@@ -122,7 +129,8 @@ class PyRainGui(QMainWindow):
                     json.dump(self.replay.header, outfile, indent=2, ensure_ascii=False)
             elif 'Netstream' in filename[1]:
                 if not self.replay.netstream:
-                    return  # TODO LOG ERROR
+                    logger.error('Netstream not parsed')
+                    return
                 with open(filename[0], 'w', encoding='utf-8') as outfile:
                     outfile.write(self.replay.netstream_to_json())
 
@@ -150,7 +158,9 @@ class PyRainGui(QMainWindow):
                 else:
                     logger.warn('Netstream not Parsed. Only Metadata for view available')
             elif ext == 'pyrope':
+                # start = time()
                 self.replay = pickle.load(open(fname[0], 'rb'))
+                # print("UNPICKLING: %f" % (time()-start))
                 logger.info('pyrain Parsed Replay File sucessfully loaded')
                 self.netstream_loaded()
             self.meta_tab.set_replay(self.replay)
@@ -170,7 +180,15 @@ class PyRainGui(QMainWindow):
         raise exc
 
     def netstream_loaded(self):
-        self.heatmap_tab.set_replay(self.replay)
+        # start = time()
+        analyser = Analyser(self.replay)
+        # print("analyser: %f" % (time()-start))
+        # start = time()
+        self.heatmap_tab.set_analyser(analyser)
+        # print("heatmap: %f" % (time()-start))
+        # start = time()
+        self.distance_tab.set_analyser(analyser)
+        # print("distance: %f" % (time()-start))
         logger.info('Netstream Parsed. No Errors found')
 
 

@@ -10,7 +10,7 @@ from PyQt5.QtCore import Qt, QSize
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
 from qt_ext import FlowLayout
-from analyser import Analyser, AnalyserUtils
+from analyser import AnalyserUtils
 import plotter
 
 
@@ -33,15 +33,14 @@ class HeatmapWidget(QWidget):
         self.cmb_style = None  # Plot style
         self.chk_logscale = None  # Scale Logarithmic
         self.sld_res = None  # Bin Scaling for plots
+        self.analyser = None
         self._generate_widget()
-        self.replay = None
 
-    def set_replay(self, replay):
-        self.replay = replay
-        self.analyser = Analyser(self.replay)
+    def set_analyser(self, analyser):
+        self.analyser = analyser
         self.frm_extraction.setEnabled(True)
         self.cmb_player.clear()
-        self.cmb_player.insertItems(0, [k for k in self.analyser.player.keys()])
+        self.cmb_player.insertItems(0, [k for k in self.analyser.player_data.keys()])
         self.cmb_player.addItem('Ball')
 
         self._clear_plots()
@@ -250,11 +249,8 @@ class HeatmapWidget(QWidget):
         slicing = True
         if self.cmb_slicing.currentText() == 'None':
             slicing = False
-        if player == 'Ball':
-            data = self.analyser.get_ball_pos(slicing)
-        else:
-            data = self.analyser.get_player_pos(player, slicing)
-        new_datasets = AnalyserUtils.filter_coords(data)
+        data = self.analyser.get_actor_pos(player, slicing)
+        new_datasets = AnalyserUtils.filter_coords(data, True, True, False)
         for entry in new_datasets:
             if entry['title_short'] in self.datasets:
                 self.logger.debug("Dataset already in Plotlist")
@@ -335,13 +331,9 @@ class HeatmapWidget(QWidget):
 
     def _generate_plot_widget(self, datasetname):
         plt_type = self.cmb_style.currentText()
-        hexbin = False
-        interpolate = False
-        if plt_type == 'Hexbin':
-            hexbin = True
-        if 'Blur' in plt_type:
-            interpolate = True
-        if 'Wasteland' in self.replay.header['MapName']:
+        hexbin = True if plt_type == 'Hexbin' else False
+        interpolate = True if 'Blur' in plt_type else False
+        if 'Wasteland' in self.analyser.replay.header['MapName']:
             arena = plotter.WASTELAND
             overlays = [plotter.OUTLINE, plotter.FIELDLINE]  # TODO MAKE OPTION IN GUI
         else:
@@ -396,7 +388,7 @@ class HeatmapWidget(QWidget):
         self.btn_removeplot.setEnabled(enable_btn_mod)
         self.btn_updateplot.setEnabled(enable_btn_mod)
         if plot_names:
-            enable_add=True
+            enable_add = True
         self.btn_addplot.setEnabled(enable_add)
 
 

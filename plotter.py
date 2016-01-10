@@ -1,8 +1,11 @@
 import logging
-from matplotlib.colors import LogNorm
+
+from cycler import cycler
+from matplotlib.colors import LogNorm, rgb2hex
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 import numpy as np
+from itertools import chain
 
 logger = logging.getLogger('pyrain')
 
@@ -47,6 +50,17 @@ def graph_2d(values, mean=True):
         y_mean = [np.mean(values['ys']) for i in values['xs']]
         ax.plot(values['xs'], y_mean, linestyle='--')
     plt.show()
+
+
+def lines2d(x, y, ax, mean=True):
+    lines = []
+    l, = ax.plot(x, y)
+    lines.append(l)
+    if mean:
+        y_mean = [np.mean(y) for i in x]
+        l, = ax.plot(x, y_mean, linestyle='--')
+        lines.append(l)
+    return lines
 
 
 def generate_figure(data, arena, overlays=None, bins=(25, 12), hexbin=False, interpolate=True,
@@ -94,3 +108,15 @@ def generate_figure(data, arena, overlays=None, bins=(25, 12), hexbin=False, int
     fig.subplots_adjust(hspace=0, wspace=0, right=1, top=0.9, bottom=0.05, left=0)
     fig.patch.set_facecolor((0, 0, .5))
     return fig
+
+
+def set_colormap(ax, colors=10, double=True):
+    cm = plt.get_cmap('gist_rainbow')
+    if double:
+        cycle = list(chain.from_iterable((cm(1.*i/colors), cm(1.*i/colors)) for i in range(colors)))
+    else:
+        cycle = [cm(1.*i/colors) for i in range(colors)]
+    ax.set_prop_cycle(cycler('color', cycle))
+
+def get_rgb(line):
+    return rgb2hex(line.get_color())
