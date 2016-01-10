@@ -160,6 +160,27 @@ class Analyser:
                   'distance': distances}
         return result
 
+    def get_points(self, player):
+        actors = self.player_data[player]
+        # result = OrderedDict()
+        result = []
+        for actor in actors:
+            lscore = 0
+            search = str(actor['id']) + 'e_Default__PRI_TA'
+            for i in range(actor['join'], actor['left']+1):
+                frame = self.replay.netstream[i]
+                if search in frame.actors:
+                    try:
+                        score = frame.actors[search]['data']['TAGame.PRI_TA:MatchScore']
+                        # if score not in result.values():
+                        #     result[i] = score
+                        if score != lscore:
+                            result.append([i, score-lscore])
+                            lscore = score
+                    except KeyError:
+                        pass
+        return result
+
 
 class AnalyserUtils:
     @staticmethod
@@ -182,6 +203,8 @@ class AnalyserUtils:
             if z:
                 z_coords = [z for x, y, z in coord['data'] if z > 0]
                 result[-1]['z'] = z_coords
+            # print(min(result[-1]['y']), max(result[-1]['y']))
+            # print(min(result[-1]['x']), max(result[-1]['x']))
             if not len(x_coords) == len(y_coords):
                 raise ValueError('Wrong Dimensions')
         return result
