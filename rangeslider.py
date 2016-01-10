@@ -13,13 +13,11 @@ __version__ = "0.1.1"
 # ---------------------------------------------------------------------------------------------
 
 """
-  - smoother mouse move event handler
   - support splits and joins
   - verticle sliders
   - ticks
 
 """
-
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import QGridLayout, QSplitter, QGroupBox, QApplication, QHBoxLayout, QWidget
 from PyQt5.QtGui import QPainter, QColor, QFont
@@ -168,27 +166,28 @@ class Handle(Element):
         event.accept()
         mx = event.globalX()
         _mx = getattr(self, '__mx', None)
-
+        vrange = self.main.max() - self.main.min()
+        size = self.main.width()
+        step = vrange/size
         if not _mx:
             setattr(self, '__mx', mx)
             dx = 0
         else:
             dx = mx - _mx
-
-        setattr(self, '__mx', mx)
-
-        if dx == 0:
+        dx *= step
+        if -1 < dx < 1:
             event.ignore()
             return
-        elif dx > 0:
-            dx = 1
-        elif dx < 0:
-            dx = -1
+        dx = round(dx)
+        setattr(self, '__mx', mx)
 
         s = self.main.start() + dx
         e = self.main.end() + dx
         if s >= self.main.min() and e <= self.main.max():
             self.main.setRange(s, e)
+
+    def mousePressEvent(self, event):
+        setattr(self, '__mx', event.globalX())
 
 
 class QRangeSlider(QWidget, Ui_Form):
