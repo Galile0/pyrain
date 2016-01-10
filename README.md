@@ -8,6 +8,7 @@ This project aims to provide a graphical analysis of matches from Rocketleague r
     * Heatmaps as Hexbin, 2D Histogram, Interpolated 2D Histogram
     * Optional logarithmic scaling of values to keep rare positions visible against common positions (like kickoff spawn)
     * Dynamically set resolution of the heatmap
+* Distance Plotting, graphical representation of ball chasers...or were you the one?! :O
 * Exporting Images (Currently only Exporting a single image at a time, no dynamic subplots as of yet)
 
 # Installation
@@ -22,13 +23,9 @@ To get the latest Release go to the release tab of this github repo and grab the
 * run pyrain_gui.py
 
 # Known Bugs
-
-* Wasteland Maps have a different shape and won't get represented properly. This will get fixed with 1.1
 * Mutators will produce errors. This is a missing feature of pyrope, the replay parsing lib
 
 # In the works
-* Distance plots
-    Simple graphs that map the distance between two objects over the course of the game. Makes Ballhoggers easily visible
 * Some kind of 3D visualization
     Not yet decided on a useful representation
 * More Non graphical data like:
