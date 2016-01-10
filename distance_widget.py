@@ -1,15 +1,16 @@
 from PyQt5.QtGui import QBrush, QColor
-from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QFrame, QTreeWidget,
-                             QTreeWidgetItem, QListWidget, QTableWidget, QTableWidgetItem,
-                             QAbstractItemView, QPushButton, QGridLayout, QLabel, QComboBox,
-                             QSizePolicy, QSpacerItem, QGroupBox)
-from PyQt5.QtCore import Qt, QSize
+from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QFrame, QListWidget, QAbstractItemView,
+                             QPushButton, QGridLayout, QLabel, QComboBox, QSizePolicy,
+                             QSpacerItem, QGroupBox)
+from PyQt5.QtCore import QSize
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-import plotter
 import itertools
 
+import plotter
 from rangeslider import QRangeSlider
+
+WHITE = QBrush(QColor(255, 255, 255))
 
 
 class DistanceWidget(QWidget):
@@ -24,7 +25,19 @@ class DistanceWidget(QWidget):
         self.setEnabled(False)
 
     def set_analyser(self, analyser):
+        # Reset Internal Variables and remove plots
         self.plots = {}
+        self.overlaps = {}
+        self.lst_plots.clear()
+        while self.ax.lines:
+            self.ax.lines[-1].remove()
+        self.ax.relim()
+        self.canvas.setVisible(False)
+        self.range.setMin(500)
+        self.range.setMax(0)
+        self.range.setRange(0, 500)
+        self.range.setVisible(False)
+        # Populate GUI
         self.analyser = analyser
         players = list(self.analyser.player_data.keys())
         self.overlaps = {player: [] for player in players}
@@ -74,8 +87,6 @@ class DistanceWidget(QWidget):
         self.range = QRangeSlider(self)
         self.range.setMin(500)
         self.range.setMax(0)
-        # self.range.setMax(20)
-        # self.range.setRange(0, 20)
         self.range.startValueChanged.connect(self._set_xmin)
         self.range.endValueChanged.connect(self._set_xmax)
         self.range.setFixedHeight(30)
@@ -107,7 +118,7 @@ class DistanceWidget(QWidget):
         grid.setHorizontalSpacing(0)
 
         grid.addWidget(self._setup_extraction(groupbox), 0, 0, 1, 1)
-        grid.addWidget(self._setup_plots(groupbox), 1, 0, 1, 1)
+        grid.addWidget(self._setup_plotctrl(groupbox), 1, 0, 1, 1)
 
         return groupbox
 
@@ -147,7 +158,7 @@ class DistanceWidget(QWidget):
         btn_add.clicked.connect(self._add_plot)
         return frame
 
-    def _setup_plots(self, parent):
+    def _setup_plotctrl(self, parent):
         frame = QWidget(parent)
         grid = QGridLayout(frame)
         grid.setContentsMargins(1, 1, 1, 1)
@@ -160,6 +171,7 @@ class DistanceWidget(QWidget):
         self.lst_plots.setMinimumSize(QSize(0, 30))
         self.lst_plots.setMaximumHeight(350)
         self.lst_plots.itemSelectionChanged.connect(self._toggle_buttons)
+        self.lst_plots.itemDoubleClicked.connect(self._toggle_plot)
         grid.addWidget(self.lst_plots, 0, 0, 1, 2)
 
         btn_show = QPushButton(frame)
@@ -193,6 +205,7 @@ class DistanceWidget(QWidget):
             self.plots[label1] = lines
             self.lst_plots.addItem(label1)
             item = self.lst_plots.item(self.lst_plots.count()-1)
+            item.setBackground(WHITE)
             item.setToolTip('Average Distance: '+str(int(lines[1].get_ydata()[0])))
 
     def _show_plot(self):
@@ -215,7 +228,7 @@ class DistanceWidget(QWidget):
             for plot in self.plots[item.text()]:
                 if plot in self.ax.lines:
                     plot.remove()
-            item.setBackground(QBrush(QColor(255, 255, 255)))
+            item.setBackground(WHITE)
         self.canvas.draw()
         self.canvas.figure.tight_layout()
         self._toggle_buttons()
@@ -231,6 +244,12 @@ class DistanceWidget(QWidget):
                     self.buttons['hide'].setEnabled(True)
                 else:
                     self.buttons['show'].setEnabled(True)
+
+    def _toggle_plot(self, item):
+        if item.background().color().getRgb() == WHITE.color().getRgb():
+            self._show_plot()
+        else:
+            self._hide_plot()
 
     def _set_xmin(self, val):
         self.ax.set_xlim(left=val)
